@@ -1,0 +1,256 @@
+{
+  "moduleName": "Products",
+  "path": "src/products",
+  "purpose": "Manage products with pricing, categorization, soft delete, and status tracking",
+  "entity": {
+    "name": "Product",
+    "path": "src/products/entities/product.entity.ts",
+    "extends": "BaseEntity",
+    "fields": [
+      {
+        "name": "id",
+        "type": "number",
+        "description": "Primary key (inherited from BaseEntity)"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "description": "Product name",
+        "decorator": "@Column({ type: 'varchar', length: 255 })",
+        "required": true
+      },
+      {
+        "name": "description",
+        "type": "string",
+        "description": "Product description",
+        "decorator": "@Column({ type: 'text', nullable: true })",
+        "required": false
+      },
+      {
+        "name": "price",
+        "type": "number",
+        "description": "Selling price",
+        "decorator": "@Column({ type: 'decimal', precision: 10, scale: 2 })",
+        "required": true
+      },
+      {
+        "name": "image",
+        "type": "string",
+        "description": "Image URL or path",
+        "decorator": "@Column({ type: 'varchar', length: 500, nullable: true })",
+        "required": false
+      },
+      {
+        "name": "status",
+        "type": "ProductStatus enum",
+        "description": "Product status (active/inactive)",
+        "decorator": "@Column({ type: 'enum', enum: ProductStatus, default: ProductStatus.ACTIVE })",
+        "required": true,
+        "default": "active"
+      },
+      {
+        "name": "categoryId",
+        "type": "number",
+        "description": "Reference to Category",
+        "decorator": "@Column({ type: 'int' })",
+        "required": true
+      },
+      {
+        "name": "category",
+        "type": "Category",
+        "description": "Category relationship (eager loaded)",
+        "decorator": "@ManyToOne(() => Category, { eager: true })",
+        "joinColumn": "@JoinColumn({ name: 'categoryId' })",
+        "relationshipType": "ManyToOne",
+        "targetEntity": "Category",
+        "eagerLoading": true,
+        "required": false
+      },
+      {
+        "name": "createdAt",
+        "type": "Date",
+        "description": "Auto-generated on creation (inherited from BaseEntity)"
+      },
+      {
+        "name": "updatedAt",
+        "type": "Date",
+        "description": "Auto-updated on modification (inherited from BaseEntity)"
+      },
+      {
+        "name": "deletedAt",
+        "type": "Date",
+        "description": "Soft delete timestamp (inherited from BaseEntity)",
+        "required": false
+      }
+    ]
+  },
+  "enums": {
+    "ProductStatus": {
+      "path": "src/enums/product.enum.ts",
+      "values": [
+        "ACTIVE = 'active'",
+        "INACTIVE = 'inactive'"
+      ]
+    }
+  },
+  "dtos": {
+    "create": {
+      "path": "src/products/dto/create-product.dto.ts",
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "validators": ["@IsString()", "@MinLength(1)"],
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "validators": ["@IsOptional()", "@IsString()"],
+          "required": false
+        },
+        {
+          "name": "price",
+          "type": "number",
+          "validators": ["@IsNumber()", "@Min(0)"],
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "string",
+          "validators": ["@IsOptional()", "@IsString()"],
+          "required": false
+        },
+        {
+          "name": "categoryId",
+          "type": "number",
+          "validators": ["@IsNumber()"],
+          "required": true
+        },
+        {
+          "name": "status",
+          "type": "ProductStatus",
+          "validators": ["@IsOptional()", "@IsEnum(ProductStatus)"],
+          "required": false,
+          "default": "active"
+        }
+      ]
+    },
+    "update": {
+      "path": "src/products/dto/update-product.dto.ts",
+      "description": "Extends CreateProductDto using PartialType for optional fields"
+    }
+  },
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/products",
+      "description": "Create a new product",
+      "requestBody": "CreateProductDto",
+      "responseBody": "Product",
+      "statusCode": 201,
+      "validation": "Category must exist"
+    },
+    {
+      "method": "GET",
+      "path": "/products",
+      "description": "Get all products (excludes soft-deleted)",
+      "queryParameters": [
+        {
+          "name": "categoryId",
+          "type": "number",
+          "description": "Optional filter by category ID"
+        }
+      ],
+      "responseBody": "Product[]",
+      "statusCode": 200
+    },
+    {
+      "method": "GET",
+      "path": "/products/:id",
+      "description": "Get a specific product by ID",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "number",
+          "description": "Product ID"
+        }
+      ],
+      "responseBody": "Product",
+      "statusCode": 200,
+      "errors": ["404 - Product not found"]
+    },
+    {
+      "method": "PATCH",
+      "path": "/products/:id",
+      "description": "Update a product",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "number",
+          "description": "Product ID"
+        }
+      ],
+      "requestBody": "UpdateProductDto",
+      "responseBody": "Product",
+      "statusCode": 200,
+      "validation": "If categoryId provided, category must exist",
+      "errors": ["404 - Product not found"]
+    },
+    {
+      "method": "DELETE",
+      "path": "/products/:id",
+      "description": "Soft delete a product (sets deletedAt timestamp)",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "number",
+          "description": "Product ID"
+        }
+      ],
+      "statusCode": 200,
+      "errors": ["404 - Product not found"]
+    }
+  ],
+  "relationships": {
+    "summary": "Product has a ManyToOne relationship with Category",
+    "details": [
+      {
+        "type": "ManyToOne",
+        "sourceEntity": "Product",
+        "targetEntity": "Category",
+        "foreignKeyField": "categoryId",
+        "relationshipField": "category",
+        "joinColumn": "@JoinColumn({ name: 'categoryId' })",
+        "eagerLoading": true,
+        "description": "Each product belongs to one category. Category is eager-loaded with product queries."
+      }
+    ],
+    "implementationPattern": {
+      "step1": "Add foreign key field: @Column({ type: 'int' }) categoryId: number;",
+      "step2": "Add relationship field: @ManyToOne(() => Category, { eager: true }) category: Category;",
+      "step3": "Add join column: @JoinColumn({ name: 'categoryId' })",
+      "step4": "Import JoinColumn from typeorm: import { JoinColumn } from 'typeorm';"
+    }
+  },
+  "businessRules": [
+    "Product name is required and must be at least 1 character",
+    "Price must be a non-negative number",
+    "Category must exist before creating a product",
+    "Products are soft-deleted (deletedAt field set, not removed from DB)",
+    "Soft-deleted products are excluded from findAll queries",
+    "Status defaults to 'active' if not provided",
+    "Category is eager-loaded with product queries"
+  ],
+  "dependencies": ["Categories Module"],
+  "usedBy": ["Orders Module"],
+  "files": {
+    "controller": "src/products/products.controller.ts",
+    "service": "src/products/products.service.ts",
+    "module": "src/products/products.module.ts",
+    "entity": "src/products/entities/product.entity.ts",
+    "dtos": "src/products/dto/",
+    "enums": "src/enums/product.enum.ts"
+  }
+}
+

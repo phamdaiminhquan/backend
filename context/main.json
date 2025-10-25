@@ -1,0 +1,374 @@
+{
+  "projectName": "Coffee Shop Revenue Management Backend",
+  "version": "1.0.0",
+  "description": "A comprehensive NestJS backend service for managing a coffee shop's revenue with categories, products, orders, and revenue reporting capabilities",
+  "purpose": "Provide a complete backend solution for coffee shop operations including product catalog management, order processing, and revenue analytics",
+  
+  "technologyStack": {
+    "framework": "NestJS 11.0.1",
+    "language": "TypeScript 5.7.3",
+    "database": "PostgreSQL",
+    "orm": "TypeORM 0.3.27",
+    "validation": "class-validator 0.14.2",
+    "transformation": "class-transformer 0.5.1",
+    "documentation": "Swagger/OpenAPI (@nestjs/swagger 11.2.1)",
+    "runtime": "Node.js"
+  },
+
+  "architecture": {
+    "pattern": "Modular Monolith",
+    "style": "RESTful API",
+    "modules": [
+      {
+        "name": "Categories",
+        "path": "src/categories",
+        "purpose": "Manage product categories",
+        "endpoints": 5,
+        "contextFile": "context/category.json"
+      },
+      {
+        "name": "Products",
+        "path": "src/products",
+        "purpose": "Manage products with soft delete and category relationships",
+        "endpoints": 5,
+        "contextFile": "context/product.json"
+      },
+      {
+        "name": "Orders",
+        "path": "src/orders",
+        "purpose": "Manage orders with lifecycle and order details",
+        "endpoints": 5,
+        "contextFile": "context/order.json"
+      },
+      {
+        "name": "Revenue",
+        "path": "src/revenue",
+        "purpose": "Generate revenue reports with payment method breakdown",
+        "endpoints": 2,
+        "contextFile": "context/revenue.json"
+      }
+    ],
+    "sharedComponents": {
+      "baseEntity": {
+        "path": "src/common/entities/base.entity.ts",
+        "purpose": "Abstract base class with common fields for all entities",
+        "fields": [
+          "id (auto-generated primary key)",
+          "createdAt (auto-generated timestamp)",
+          "updatedAt (auto-updated timestamp)",
+          "createdBy (audit trail - user ID)",
+          "updatedBy (audit trail - user ID)",
+          "deletedAt (soft delete support)"
+        ]
+      },
+      "enums": {
+        "path": "src/enums",
+        "files": [
+          {
+            "name": "product.enum.ts",
+            "enums": ["ProductStatus"]
+          },
+          {
+            "name": "order.enum.ts",
+            "enums": ["OrderStatus", "PaymentMethod"]
+          }
+        ]
+      }
+    }
+  },
+
+  "databaseSchema": {
+    "type": "PostgreSQL",
+    "entities": [
+      {
+        "name": "Category",
+        "table": "categories",
+        "fields": ["id", "name", "description", "createdAt", "updatedAt", "createdBy", "updatedBy", "deletedAt"],
+        "relationships": []
+      },
+      {
+        "name": "Product",
+        "table": "products",
+        "fields": ["id", "name", "description", "price", "image", "status", "categoryId", "createdAt", "updatedAt", "createdBy", "updatedBy", "deletedAt"],
+        "relationships": [
+          {
+            "type": "ManyToOne",
+            "target": "Category",
+            "foreignKey": "categoryId",
+            "joinColumn": "@JoinColumn({ name: 'categoryId' })",
+            "eagerLoading": true
+          }
+        ]
+      },
+      {
+        "name": "Order",
+        "table": "orders",
+        "fields": ["id", "customerName", "userId", "paymentMethod", "status", "cancellationReason", "createdAt", "updatedAt", "createdBy", "updatedBy"],
+        "relationships": [
+          {
+            "type": "OneToMany",
+            "target": "OrderDetail",
+            "property": "orderDetails",
+            "cascade": true
+          }
+        ]
+      },
+      {
+        "name": "OrderDetail",
+        "table": "order_details",
+        "fields": ["id", "orderId", "productId", "quantity", "unitPrice", "subtotal", "createdAt", "createdBy", "updatedBy", "deletedAt"],
+        "relationships": [
+          {
+            "type": "ManyToOne",
+            "target": "Order",
+            "foreignKey": "orderId",
+            "joinColumn": "@JoinColumn({ name: 'orderId' })",
+            "cascadeDelete": true
+          },
+          {
+            "type": "ManyToOne",
+            "target": "Product",
+            "foreignKey": "productId",
+            "joinColumn": "@JoinColumn({ name: 'productId' })",
+            "eagerLoading": true
+          }
+        ]
+      }
+    ],
+    "relationshipSummary": {
+      "Product → Category": "ManyToOne (each product belongs to one category)",
+      "Order → OrderDetail": "OneToMany (each order has multiple order details)",
+      "OrderDetail → Order": "ManyToOne with cascade delete (each order detail belongs to one order)",
+      "OrderDetail → Product": "ManyToOne with eager loading (each order detail references one product)"
+    },
+    "synchronization": "Enabled in non-production environments"
+  },
+
+  "apiDocumentation": {
+    "framework": "Swagger/OpenAPI",
+    "endpoint": "/api",
+    "url": "http://localhost:3000/api",
+    "features": [
+      "Interactive API documentation",
+      "Request/response schemas",
+      "Example values for all DTOs",
+      "Endpoint descriptions and tags",
+      "Query parameter documentation"
+    ]
+  },
+
+  "environmentVariables": {
+    "required": [
+      {
+        "name": "DB_HOST",
+        "description": "PostgreSQL database host",
+        "default": "localhost"
+      },
+      {
+        "name": "DB_PORT",
+        "description": "PostgreSQL database port",
+        "default": "5432"
+      },
+      {
+        "name": "DB_USERNAME",
+        "description": "PostgreSQL database username",
+        "default": "postgres"
+      },
+      {
+        "name": "DB_PASSWORD",
+        "description": "PostgreSQL database password",
+        "default": ""
+      },
+      {
+        "name": "DB_NAME",
+        "description": "PostgreSQL database name",
+        "default": "coffee_shop"
+      },
+      {
+        "name": "NODE_ENV",
+        "description": "Environment (development/production)",
+        "default": "development"
+      },
+      {
+        "name": "PORT",
+        "description": "Application port",
+        "default": "3000"
+      }
+    ],
+    "configFile": ".env.example"
+  },
+
+  "howToRun": {
+    "setup": [
+      "1. Clone the repository",
+      "2. Install dependencies: npm install",
+      "3. Copy .env.example to .env and configure database credentials",
+      "4. Ensure PostgreSQL is running",
+      "5. Database will be auto-created and synchronized on first run"
+    ],
+    "commands": {
+      "install": "npm install",
+      "build": "npm run build",
+      "start": "npm run start",
+      "startDev": "npm run dev (with hot reload)",
+      "startProd": "npm run start:prod",
+      "test": "npm test",
+      "testE2E": "npm run test:e2e",
+      "lint": "npm run lint",
+      "format": "npm run format"
+    },
+    "accessPoints": {
+      "api": "http://localhost:3000",
+      "swagger": "http://localhost:3000/api"
+    }
+  },
+
+  "developmentGuidelines": {
+    "codeStyle": [
+      "Follow NestJS best practices",
+      "Use TypeScript strict mode",
+      "Apply ESLint and Prettier formatting",
+      "Write descriptive variable and function names"
+    ],
+    "architecture": [
+      "All entities must extend BaseEntity",
+      "Place all enums in src/enums/ directory",
+      "Use centralized enum imports",
+      "Follow module/controller/service pattern",
+      "Use DTOs for all request/response data"
+    ],
+    "validation": [
+      "Use class-validator decorators in DTOs",
+      "Add @ApiProperty decorators for Swagger documentation",
+      "Validate all user inputs",
+      "Use proper HTTP status codes"
+    ],
+    "database": [
+      "Use TypeORM decorators for entity definitions",
+      "Leverage BaseEntity for common fields",
+      "Use soft delete for products (deletedAt field)",
+      "Define relationships with proper cascade options",
+      "Use @JoinColumn decorator on ManyToOne side to specify foreign key column name",
+      "Document all relationships in module-specific context files"
+    ],
+    "documentation": [
+      "Update context files when making changes",
+      "Add Swagger decorators to all endpoints",
+      "Document business rules in context files",
+      "Keep API documentation up to date"
+    ]
+  },
+
+  "recentArchitecturalChanges": [
+    {
+      "change": "Foreign Key Relationships with @JoinColumn",
+      "date": "2025-10-25",
+      "description": "Added explicit @JoinColumn decorators to all ManyToOne relationships for better database schema control",
+      "impact": [
+        "Product entity: Added @JoinColumn({ name: 'categoryId' }) for category relationship",
+        "OrderDetail entity: Added @JoinColumn({ name: 'orderId' }) for order relationship",
+        "OrderDetail entity: Added @JoinColumn({ name: 'productId' }) for product relationship",
+        "Improved database schema clarity and explicit foreign key column naming",
+        "All context files updated with relationship documentation including joinColumn property"
+      ],
+      "files": [
+        "src/products/entities/product.entity.ts",
+        "src/orders/entities/order-detail.entity.ts",
+        "context/product.json",
+        "context/order.json"
+      ]
+    },
+    {
+      "change": "Database Migration to PostgreSQL",
+      "date": "2025-10-25",
+      "description": "Migrated from MySQL to PostgreSQL for better performance and features",
+      "impact": [
+        "Replaced mysql2 package with pg",
+        "Updated TypeORM configuration to use postgres driver",
+        "Changed default port from 3306 to 5432",
+        "Updated .env.example with PostgreSQL configuration",
+        "Changed datetime to timestamp in BaseEntity for PostgreSQL compatibility"
+      ]
+    },
+    {
+      "change": "Swagger/OpenAPI Integration",
+      "date": "2025-10-25",
+      "description": "Added comprehensive API documentation using Swagger",
+      "impact": [
+        "Installed @nestjs/swagger and swagger-ui-express",
+        "Configured Swagger in main.ts",
+        "Added @ApiProperty decorators to all DTOs",
+        "Added @ApiTags, @ApiOperation, @ApiResponse decorators to all controllers",
+        "Swagger UI accessible at /api endpoint"
+      ]
+    },
+    {
+      "change": "Enum Centralization",
+      "date": "Previous refactoring",
+      "description": "Moved all enum types to dedicated src/enums/ directory",
+      "impact": [
+        "Created src/enums/product.enum.ts for ProductStatus",
+        "Created src/enums/order.enum.ts for OrderStatus and PaymentMethod",
+        "Updated all imports across the codebase",
+        "Single source of truth for enum definitions"
+      ]
+    },
+    {
+      "change": "Base Entity Pattern",
+      "date": "Previous refactoring",
+      "description": "Created abstract BaseEntity class with common fields",
+      "impact": [
+        "All entities extend BaseEntity",
+        "DRY principle applied to common fields",
+        "Consistent audit trail across all entities",
+        "Centralized soft delete support"
+      ]
+    },
+    {
+      "change": "Context Documentation System",
+      "date": "Previous refactoring",
+      "description": "Created comprehensive JSON documentation for all modules",
+      "impact": [
+        "Created context/ directory with 6 JSON files",
+        "Documented all entities, DTOs, endpoints, and business rules",
+        "Serves as source of truth for module behavior",
+        "Facilitates onboarding and maintenance",
+        "Created CONTEXT_SYSTEM_GUIDE.md for AI agents"
+      ]
+    }
+  ],
+
+  "contextFiles": {
+    "main": "context/main.json (this file)",
+    "overview": "context/overview.json",
+    "guide": "CONTEXT_SYSTEM_GUIDE.md",
+    "modules": [
+      "context/category.json",
+      "context/product.json",
+      "context/order.json",
+      "context/revenue.json"
+    ],
+    "usage": "AI agents should read main.json first, then consult module-specific context files. See CONTEXT_SYSTEM_GUIDE.md for detailed instructions on maintaining context files.",
+    "updateGuidelines": "When making changes to entities, DTOs, endpoints, or business rules, update the corresponding context file(s). Add architectural changes to recentArchitecturalChanges array."
+  },
+
+  "keyFeatures": [
+    "Complete CRUD operations for categories and products",
+    "Order management with lifecycle (pending_payment → paid/cancelled)",
+    "Soft delete for products (preserves data)",
+    "Revenue reporting with daily and range-based analytics",
+    "Payment method breakdown (cash/bank transfer)",
+    "Customer purchase pattern tracking",
+    "Automatic database synchronization",
+    "Environment-based configuration",
+    "Comprehensive API documentation with Swagger",
+    "Input validation with class-validator",
+    "Audit trail support (createdBy/updatedBy)",
+    "PostgreSQL database with TypeORM"
+  ],
+
+  "totalEndpoints": 17,
+  "buildStatus": "Success",
+  "lastUpdated": "2025-10-25"
+}
+

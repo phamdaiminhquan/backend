@@ -1,0 +1,172 @@
+{
+  "moduleName": "Revenue",
+  "path": "src/revenue",
+  "purpose": "Generate revenue reports with daily and range-based analytics including payment method breakdown",
+  "dtos": {
+    "paymentMethodBreakdown": {
+      "path": "src/revenue/dto/revenue-report.dto.ts",
+      "fields": [
+        {
+          "name": "cash",
+          "type": "number",
+          "description": "Total revenue from cash payments"
+        },
+        {
+          "name": "bank_transfer",
+          "type": "number",
+          "description": "Total revenue from bank transfer payments"
+        }
+      ]
+    },
+    "revenueReport": {
+      "path": "src/revenue/dto/revenue-report.dto.ts",
+      "fields": [
+        {
+          "name": "date",
+          "type": "string",
+          "description": "Report date in YYYY-MM-DD format"
+        },
+        {
+          "name": "totalOrders",
+          "type": "number",
+          "description": "Total number of paid orders for the day"
+        },
+        {
+          "name": "totalRevenue",
+          "type": "number",
+          "description": "Total revenue amount"
+        },
+        {
+          "name": "paymentMethodBreakdown",
+          "type": "PaymentMethodBreakdown",
+          "description": "Revenue breakdown by payment method"
+        }
+      ]
+    }
+  },
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/revenue/daily",
+      "description": "Get daily revenue report for a specific date",
+      "queryParameters": [
+        {
+          "name": "date",
+          "type": "string",
+          "format": "YYYY-MM-DD",
+          "description": "Report date (defaults to today if not provided)"
+        }
+      ],
+      "responseBody": "RevenueReportDto",
+      "statusCode": 200,
+      "example": {
+        "date": "2024-01-01",
+        "totalOrders": 5,
+        "totalRevenue": 50.00,
+        "paymentMethodBreakdown": {
+          "cash": 30.00,
+          "bank_transfer": 20.00
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/revenue/range",
+      "description": "Get revenue reports for a date range",
+      "queryParameters": [
+        {
+          "name": "startDate",
+          "type": "string",
+          "format": "YYYY-MM-DD",
+          "description": "Start date (inclusive)",
+          "required": true
+        },
+        {
+          "name": "endDate",
+          "type": "string",
+          "format": "YYYY-MM-DD",
+          "description": "End date (inclusive)",
+          "required": true
+        }
+      ],
+      "responseBody": "RevenueReportDto[]",
+      "statusCode": 200,
+      "example": [
+        {
+          "date": "2024-01-01",
+          "totalOrders": 5,
+          "totalRevenue": 50.00,
+          "paymentMethodBreakdown": {
+            "cash": 30.00,
+            "bank_transfer": 20.00
+          }
+        },
+        {
+          "date": "2024-01-02",
+          "totalOrders": 8,
+          "totalRevenue": 75.50,
+          "paymentMethodBreakdown": {
+            "cash": 45.50,
+            "bank_transfer": 30.00
+          }
+        }
+      ]
+    }
+  ],
+  "businessLogic": {
+    "dailyRevenue": {
+      "description": "Calculates revenue for a single day",
+      "process": [
+        "1. Get all orders with status 'paid' for the specified date",
+        "2. For each order, sum all order details subtotals",
+        "3. Categorize revenue by payment method",
+        "4. Return aggregated report"
+      ],
+      "dateRange": "00:00:00 to 23:59:59 of the specified date"
+    },
+    "rangeRevenue": {
+      "description": "Calculates revenue for a date range",
+      "process": [
+        "1. Iterate through each day in the range",
+        "2. Call getDailyRevenue for each day",
+        "3. Collect all daily reports",
+        "4. Return array of reports"
+      ]
+    }
+  },
+  "businessRules": [
+    "Only 'paid' orders are included in revenue calculations",
+    "Pending and cancelled orders are excluded",
+    "Revenue is calculated from order details subtotals",
+    "Payment method breakdown includes only the two supported methods: cash and bank_transfer",
+    "Dates are formatted as YYYY-MM-DD in responses",
+    "Revenue amounts are rounded to 2 decimal places",
+    "Date range is inclusive on both start and end dates"
+  ],
+  "dataFlow": {
+    "input": "Date or date range",
+    "processing": [
+      "Query orders table for paid orders in date range",
+      "Join with order_details to get line items",
+      "Sum subtotals grouped by payment method",
+      "Format response"
+    ],
+    "output": "RevenueReportDto or RevenueReportDto[]"
+  },
+  "dependencies": ["Orders Module"],
+  "usedBy": [],
+  "files": {
+    "controller": "src/revenue/revenue.controller.ts",
+    "service": "src/revenue/revenue.service.ts",
+    "module": "src/revenue/revenue.module.ts",
+    "dtos": "src/revenue/dto/revenue-report.dto.ts"
+  },
+  "notes": [
+    "Revenue reports are read-only (no create, update, delete operations)",
+    "Reports are generated on-demand from order data",
+    "No caching is currently implemented; consider adding for performance",
+    "Date parsing uses JavaScript Date object; ensure timezone consistency",
+    "Future enhancement: Add more granular reporting (hourly, weekly, monthly)"
+  ]
+}
+

@@ -1,0 +1,175 @@
+{
+  "moduleName": "Categories",
+  "path": "src/categories",
+  "purpose": "Manage product categories for organizing products in the coffee shop",
+  "entity": {
+    "name": "Category",
+    "path": "src/categories/entities/category.entity.ts",
+    "extends": "BaseEntity",
+    "fields": [
+      {
+        "name": "id",
+        "type": "number",
+        "description": "Primary key (inherited from BaseEntity)",
+        "decorator": "@PrimaryGeneratedColumn()"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "description": "Category name",
+        "decorator": "@Column({ type: 'varchar', length: 255 })",
+        "required": true
+      },
+      {
+        "name": "description",
+        "type": "string",
+        "description": "Category description",
+        "decorator": "@Column({ type: 'text', nullable: true })",
+        "required": false
+      },
+      {
+        "name": "createdAt",
+        "type": "Date",
+        "description": "Auto-generated on creation (inherited from BaseEntity)",
+        "decorator": "@CreateDateColumn()"
+      },
+      {
+        "name": "updatedAt",
+        "type": "Date",
+        "description": "Auto-updated on modification (inherited from BaseEntity)",
+        "decorator": "@UpdateDateColumn()"
+      },
+      {
+        "name": "createdBy",
+        "type": "number",
+        "description": "User ID who created the record (inherited from BaseEntity)",
+        "required": false
+      },
+      {
+        "name": "updatedBy",
+        "type": "number",
+        "description": "User ID who last updated the record (inherited from BaseEntity)",
+        "required": false
+      },
+      {
+        "name": "deletedAt",
+        "type": "Date",
+        "description": "Soft delete timestamp (inherited from BaseEntity)",
+        "required": false
+      }
+    ]
+  },
+  "dtos": {
+    "create": {
+      "path": "src/categories/dto/create-category.dto.ts",
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "validators": ["@IsString()", "@MinLength(1)"],
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "validators": ["@IsOptional()", "@IsString()"],
+          "required": false
+        }
+      ]
+    },
+    "update": {
+      "path": "src/categories/dto/update-category.dto.ts",
+      "description": "Extends CreateCategoryDto using PartialType for optional fields"
+    }
+  },
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/categories",
+      "description": "Create a new category",
+      "requestBody": "CreateCategoryDto",
+      "responseBody": "Category",
+      "statusCode": 201
+    },
+    {
+      "method": "GET",
+      "path": "/categories",
+      "description": "Get all categories",
+      "responseBody": "Category[]",
+      "statusCode": 200
+    },
+    {
+      "method": "GET",
+      "path": "/categories/:id",
+      "description": "Get a specific category by ID",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "number",
+          "description": "Category ID"
+        }
+      ],
+      "responseBody": "Category",
+      "statusCode": 200,
+      "errors": ["404 - Category not found"]
+    },
+    {
+      "method": "PATCH",
+      "path": "/categories/:id",
+      "description": "Update a category",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "number",
+          "description": "Category ID"
+        }
+      ],
+      "requestBody": "UpdateCategoryDto",
+      "responseBody": "Category",
+      "statusCode": 200,
+      "errors": ["404 - Category not found"]
+    },
+    {
+      "method": "DELETE",
+      "path": "/categories/:id",
+      "description": "Delete a category",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "number",
+          "description": "Category ID"
+        }
+      ],
+      "statusCode": 200,
+      "errors": ["404 - Category not found"]
+    }
+  ],
+  "relationships": {
+    "summary": "Category is referenced by Product entity",
+    "details": [
+      {
+        "type": "Referenced by ManyToOne",
+        "sourceEntity": "Product",
+        "targetEntity": "Category",
+        "description": "Products reference categories via categoryId foreign key. Category does not have a direct relationship field to products."
+      }
+    ],
+    "note": "Category entity does not define a OneToMany relationship to products. Products are accessed via ProductsService queries filtered by categoryId."
+  },
+  "businessRules": [
+    "Category name is required and must be at least 1 character",
+    "Description is optional",
+    "Categories can be soft-deleted via the deletedAt field",
+    "All timestamps are automatically managed by TypeORM"
+  ],
+  "dependencies": [],
+  "usedBy": ["Products Module"],
+  "files": {
+    "controller": "src/categories/categories.controller.ts",
+    "service": "src/categories/categories.service.ts",
+    "module": "src/categories/categories.module.ts",
+    "entity": "src/categories/entities/category.entity.ts",
+    "dtos": "src/categories/dto/"
+  }
+}
+

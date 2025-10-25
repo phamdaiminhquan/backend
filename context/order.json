@@ -1,0 +1,396 @@
+{
+  "moduleName": "Orders",
+  "path": "src/orders",
+  "purpose": "Manage orders and order details with lifecycle management and customer tracking",
+  "entities": [
+    {
+      "name": "Order",
+      "path": "src/orders/entities/order.entity.ts",
+      "extends": "BaseEntity",
+      "fields": [
+        {
+          "name": "id",
+          "type": "number",
+          "description": "Primary key (inherited from BaseEntity)"
+        },
+        {
+          "name": "customerName",
+          "type": "string",
+          "description": "Customer name",
+          "decorator": "@Column({ type: 'varchar', length: 255, default: 'Khách vãng lai' })",
+          "default": "Khách vãng lai",
+          "required": false
+        },
+        {
+          "name": "userId",
+          "type": "number",
+          "description": "Reference to User who created the order",
+          "decorator": "@Column({ type: 'int', nullable: true })",
+          "required": false
+        },
+        {
+          "name": "paymentMethod",
+          "type": "PaymentMethod enum",
+          "description": "Payment method (cash/bank_transfer)",
+          "decorator": "@Column({ type: 'enum', enum: PaymentMethod })",
+          "required": true
+        },
+        {
+          "name": "status",
+          "type": "OrderStatus enum",
+          "description": "Order status (pending_payment/paid/cancelled)",
+          "decorator": "@Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING_PAYMENT })",
+          "default": "pending_payment",
+          "required": true
+        },
+        {
+          "name": "cancellationReason",
+          "type": "string",
+          "description": "Reason for cancellation (required when status is cancelled)",
+          "decorator": "@Column({ type: 'text', nullable: true })",
+          "required": false
+        },
+        {
+          "name": "orderDetails",
+          "type": "OrderDetail[]",
+          "description": "Order line items",
+          "decorator": "@OneToMany(() => OrderDetail, (detail) => detail.order, { cascade: true })",
+          "relationshipType": "OneToMany",
+          "targetEntity": "OrderDetail",
+          "inverseSide": "order",
+          "cascadeOptions": ["insert", "update"],
+          "required": false
+        },
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "description": "Auto-generated on creation (inherited from BaseEntity)"
+        },
+        {
+          "name": "updatedAt",
+          "type": "Date",
+          "description": "Auto-updated on modification (inherited from BaseEntity)"
+        }
+      ]
+    },
+    {
+      "name": "OrderDetail",
+      "path": "src/orders/entities/order-detail.entity.ts",
+      "extends": "BaseEntity",
+      "fields": [
+        {
+          "name": "id",
+          "type": "number",
+          "description": "Primary key (inherited from BaseEntity)"
+        },
+        {
+          "name": "orderId",
+          "type": "number",
+          "description": "Reference to Order",
+          "decorator": "@Column({ type: 'int' })",
+          "required": true
+        },
+        {
+          "name": "order",
+          "type": "Order",
+          "description": "Order relationship with cascade delete",
+          "decorator": "@ManyToOne(() => Order, (order) => order.orderDetails, { onDelete: 'CASCADE' })",
+          "joinColumn": "@JoinColumn({ name: 'orderId' })",
+          "relationshipType": "ManyToOne",
+          "targetEntity": "Order",
+          "inverseSide": "orderDetails",
+          "cascadeDelete": true,
+          "required": false
+        },
+        {
+          "name": "productId",
+          "type": "number",
+          "description": "Reference to Product",
+          "decorator": "@Column({ type: 'int' })",
+          "required": true
+        },
+        {
+          "name": "product",
+          "type": "Product",
+          "description": "Product relationship (eager loaded)",
+          "decorator": "@ManyToOne(() => Product, { eager: true })",
+          "joinColumn": "@JoinColumn({ name: 'productId' })",
+          "relationshipType": "ManyToOne",
+          "targetEntity": "Product",
+          "eagerLoading": true,
+          "required": false
+        },
+        {
+          "name": "quantity",
+          "type": "number",
+          "description": "Quantity ordered",
+          "decorator": "@Column({ type: 'int' })",
+          "required": true
+        },
+        {
+          "name": "unitPrice",
+          "type": "number",
+          "description": "Price at time of order",
+          "decorator": "@Column({ type: 'decimal', precision: 10, scale: 2 })",
+          "required": true
+        },
+        {
+          "name": "subtotal",
+          "type": "number",
+          "description": "Calculated: quantity * unitPrice",
+          "decorator": "@Column({ type: 'decimal', precision: 10, scale: 2 })",
+          "required": true
+        },
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "description": "Auto-generated on creation (inherited from BaseEntity)"
+        }
+      ]
+    }
+  ],
+  "enums": {
+    "OrderStatus": {
+      "path": "src/enums/order.enum.ts",
+      "values": [
+        "PENDING_PAYMENT = 'pending_payment'",
+        "PAID = 'paid'",
+        "CANCELLED = 'cancelled'"
+      ]
+    },
+    "PaymentMethod": {
+      "path": "src/enums/order.enum.ts",
+      "values": [
+        "CASH = 'cash'",
+        "BANK_TRANSFER = 'bank_transfer'"
+      ]
+    }
+  },
+  "dtos": {
+    "createOrderDetail": {
+      "path": "src/orders/dto/create-order.dto.ts",
+      "fields": [
+        {
+          "name": "productId",
+          "type": "number",
+          "validators": ["@IsNumber()"],
+          "required": true
+        },
+        {
+          "name": "quantity",
+          "type": "number",
+          "validators": ["@IsNumber()", "@Min(1)"],
+          "required": true
+        },
+        {
+          "name": "unitPrice",
+          "type": "number",
+          "validators": ["@IsNumber()", "@Min(0)"],
+          "required": true
+        }
+      ]
+    },
+    "create": {
+      "path": "src/orders/dto/create-order.dto.ts",
+      "fields": [
+        {
+          "name": "customerName",
+          "type": "string",
+          "validators": ["@IsOptional()", "@IsString()"],
+          "required": false,
+          "default": "Khách vãng lai"
+        },
+        {
+          "name": "userId",
+          "type": "number",
+          "validators": ["@IsOptional()", "@IsNumber()"],
+          "required": false
+        },
+        {
+          "name": "paymentMethod",
+          "type": "PaymentMethod",
+          "validators": ["@IsEnum(PaymentMethod)"],
+          "required": true
+        },
+        {
+          "name": "orderDetails",
+          "type": "CreateOrderDetailDto[]",
+          "validators": ["@IsArray()", "@ValidateNested({ each: true })"],
+          "required": true
+        }
+      ]
+    },
+    "update": {
+      "path": "src/orders/dto/update-order.dto.ts",
+      "fields": [
+        {
+          "name": "status",
+          "type": "OrderStatus",
+          "validators": ["@IsOptional()", "@IsEnum(OrderStatus)"],
+          "required": false
+        },
+        {
+          "name": "cancellationReason",
+          "type": "string",
+          "validators": ["@IsOptional()", "@IsString()"],
+          "required": false
+        }
+      ]
+    }
+  },
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/orders",
+      "description": "Create a new order with order details",
+      "requestBody": "CreateOrderDto",
+      "responseBody": "Order with orderDetails",
+      "statusCode": 201,
+      "validation": [
+        "Order must have at least one item",
+        "All products must exist"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/orders",
+      "description": "Get all orders with optional customer name filter",
+      "queryParameters": [
+        {
+          "name": "customerName",
+          "type": "string",
+          "description": "Optional filter by customer name (partial match)"
+        }
+      ],
+      "responseBody": "Order[]",
+      "statusCode": 200
+    },
+    {
+      "method": "GET",
+      "path": "/orders/:id",
+      "description": "Get a specific order with all details",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "number",
+          "description": "Order ID"
+        }
+      ],
+      "responseBody": "Order with orderDetails and products",
+      "statusCode": 200,
+      "errors": ["404 - Order not found"]
+    },
+    {
+      "method": "PATCH",
+      "path": "/orders/:id",
+      "description": "Update order status",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "number",
+          "description": "Order ID"
+        }
+      ],
+      "requestBody": "UpdateOrderDto",
+      "responseBody": "Order",
+      "statusCode": 200,
+      "validation": "If status is 'cancelled', cancellationReason is required",
+      "errors": ["404 - Order not found", "400 - Cancellation reason required"]
+    },
+    {
+      "method": "DELETE",
+      "path": "/orders/:id",
+      "description": "Delete an order",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "number",
+          "description": "Order ID"
+        }
+      ],
+      "statusCode": 200,
+      "errors": ["404 - Order not found"]
+    }
+  ],
+  "relationships": {
+    "summary": "Order has OneToMany with OrderDetail; OrderDetail has ManyToOne with Order and Product",
+    "details": [
+      {
+        "type": "OneToMany",
+        "sourceEntity": "Order",
+        "targetEntity": "OrderDetail",
+        "relationshipField": "orderDetails",
+        "inverseSide": "order",
+        "cascade": true,
+        "description": "Each order can have multiple order details (line items). Order details are cascade saved/updated with the order."
+      },
+      {
+        "type": "ManyToOne",
+        "sourceEntity": "OrderDetail",
+        "targetEntity": "Order",
+        "foreignKeyField": "orderId",
+        "relationshipField": "order",
+        "joinColumn": "@JoinColumn({ name: 'orderId' })",
+        "inverseSide": "orderDetails",
+        "cascadeDelete": true,
+        "description": "Each order detail belongs to one order. When order is deleted, all its details are cascade deleted."
+      },
+      {
+        "type": "ManyToOne",
+        "sourceEntity": "OrderDetail",
+        "targetEntity": "Product",
+        "foreignKeyField": "productId",
+        "relationshipField": "product",
+        "joinColumn": "@JoinColumn({ name: 'productId' })",
+        "eagerLoading": true,
+        "description": "Each order detail references one product. Product is eager-loaded with order detail queries."
+      }
+    ],
+    "implementationPattern": {
+      "OneToMany": {
+        "step1": "In parent entity (Order): @OneToMany(() => OrderDetail, (detail) => detail.order, { cascade: true }) orderDetails: OrderDetail[];",
+        "step2": "No @JoinColumn needed on OneToMany side",
+        "step3": "Specify inverse side in second parameter: (detail) => detail.order"
+      },
+      "ManyToOne": {
+        "step1": "Add foreign key field: @Column({ type: 'int' }) orderId: number;",
+        "step2": "Add relationship field: @ManyToOne(() => Order, (order) => order.orderDetails, { onDelete: 'CASCADE' }) order: Order;",
+        "step3": "Add join column: @JoinColumn({ name: 'orderId' })",
+        "step4": "Import JoinColumn from typeorm: import { JoinColumn } from 'typeorm';"
+      }
+    }
+  },
+  "orderLifecycle": {
+    "states": [
+      "pending_payment - Initial state when order is created",
+      "paid - Order has been paid",
+      "cancelled - Order cancelled with mandatory cancellation reason"
+    ],
+    "transitions": [
+      "pending_payment → paid",
+      "pending_payment → cancelled (requires reason)",
+      "paid → cancelled (requires reason)"
+    ]
+  },
+  "businessRules": [
+    "Order must have at least one item",
+    "All products in order details must exist",
+    "Customer name defaults to 'Khách vãng lai' if not provided",
+    "Payment method is required",
+    "Status defaults to 'pending_payment'",
+    "Cancellation reason is mandatory when status is 'cancelled'",
+    "Order details are cascade deleted when order is deleted",
+    "Product is eager-loaded with order details"
+  ],
+  "dependencies": ["Products Module"],
+  "usedBy": ["Revenue Module"],
+  "files": {
+    "controller": "src/orders/orders.controller.ts",
+    "service": "src/orders/orders.service.ts",
+    "module": "src/orders/orders.module.ts",
+    "entities": "src/orders/entities/",
+    "dtos": "src/orders/dto/",
+    "enums": "src/enums/order.enum.ts"
+  }
+}
+

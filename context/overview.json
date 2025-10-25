@@ -1,0 +1,259 @@
+{
+  "projectName": "Coffee Shop Revenue Management Backend",
+  "version": "1.0.0",
+  "description": "A comprehensive NestJS backend service for managing a coffee shop's revenue with categories, products, orders, and revenue reporting capabilities",
+  
+  "technologyStack": {
+    "framework": "NestJS 11.0.1",
+    "language": "TypeScript 5.7.3",
+    "database": "PostgreSQL",
+    "orm": "TypeORM 0.3.27",
+    "validation": "class-validator 0.14.2",
+    "transformation": "class-transformer 0.5.1",
+    "documentation": "Swagger/OpenAPI (@nestjs/swagger 11.2.1)",
+    "runtime": "Node.js"
+  },
+
+  "modules": [
+    {
+      "name": "Categories",
+      "path": "src/categories",
+      "description": "Manage product categories",
+      "entities": ["Category"],
+      "endpoints": 5,
+      "features": [
+        "Create category",
+        "Get all categories",
+        "Get category by ID",
+        "Update category",
+        "Delete category (soft delete)"
+      ]
+    },
+    {
+      "name": "Products",
+      "path": "src/products",
+      "description": "Manage products with soft delete and category relationships",
+      "entities": ["Product"],
+      "endpoints": 5,
+      "features": [
+        "Create product",
+        "Get all products (excludes soft-deleted)",
+        "Get product by ID",
+        "Update product",
+        "Soft delete product"
+      ]
+    },
+    {
+      "name": "Orders",
+      "path": "src/orders",
+      "description": "Manage orders with lifecycle and order details",
+      "entities": ["Order", "OrderDetail"],
+      "endpoints": 5,
+      "features": [
+        "Create order with order details",
+        "Get all orders",
+        "Get order by ID",
+        "Update order status",
+        "Cancel order with reason"
+      ]
+    },
+    {
+      "name": "Revenue",
+      "path": "src/revenue",
+      "description": "Generate revenue reports with payment method breakdown",
+      "entities": [],
+      "endpoints": 2,
+      "features": [
+        "Get daily revenue report",
+        "Get revenue report by date range"
+      ]
+    }
+  ],
+
+  "sharedStructure": {
+    "baseEntity": {
+      "path": "src/common/entities/base.entity.ts",
+      "description": "Abstract base class with common fields for all entities",
+      "fields": [
+        "id - Auto-generated primary key",
+        "createdAt - Auto-generated timestamp",
+        "updatedAt - Auto-updated timestamp",
+        "createdBy - Audit trail (user ID)",
+        "updatedBy - Audit trail (user ID)",
+        "deletedAt - Soft delete support"
+      ]
+    },
+    "enums": {
+      "path": "src/enums",
+      "description": "Centralized enum definitions",
+      "files": [
+        {
+          "name": "product.enum.ts",
+          "enums": [
+            {
+              "name": "ProductStatus",
+              "values": ["active", "inactive"]
+            }
+          ]
+        },
+        {
+          "name": "order.enum.ts",
+          "enums": [
+            {
+              "name": "OrderStatus",
+              "values": ["pending_payment", "paid", "cancelled"]
+            },
+            {
+              "name": "PaymentMethod",
+              "values": ["cash", "bank_transfer"]
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "databaseConfiguration": {
+    "type": "PostgreSQL",
+    "defaultPort": 5432,
+    "defaultUsername": "postgres",
+    "defaultDatabase": "coffee_shop",
+    "synchronization": "Enabled in development (synchronize: true)",
+    "entities": ["src/**/*.entity.ts"],
+    "migrations": "Not configured yet"
+  },
+
+  "environmentVariables": {
+    "required": [
+      "DB_HOST - PostgreSQL database host (default: localhost)",
+      "DB_PORT - PostgreSQL database port (default: 5432)",
+      "DB_USERNAME - PostgreSQL database username (default: postgres)",
+      "DB_PASSWORD - PostgreSQL database password",
+      "DB_NAME - PostgreSQL database name (default: coffee_shop)",
+      "NODE_ENV - Environment (development/production)",
+      "PORT - Application port (default: 3000)"
+    ],
+    "configFile": ".env.example"
+  },
+
+  "apiDocumentation": {
+    "framework": "Swagger/OpenAPI",
+    "endpoint": "/api",
+    "url": "http://localhost:3000/api",
+    "features": [
+      "Interactive API documentation",
+      "Request/response schemas",
+      "Example values for all DTOs",
+      "Endpoint descriptions and tags",
+      "Query parameter documentation",
+      "Try-it-out functionality"
+    ]
+  },
+
+  "keyFeatures": [
+    "Complete CRUD operations for categories and products",
+    "Order management with lifecycle (pending_payment → paid/cancelled)",
+    "Soft delete for products (preserves data)",
+    "Revenue reporting with daily and range-based analytics",
+    "Payment method breakdown (cash/bank transfer)",
+    "Customer purchase pattern tracking",
+    "Automatic database synchronization",
+    "Environment-based configuration",
+    "Comprehensive API documentation with Swagger",
+    "Input validation with class-validator",
+    "Audit trail support (createdBy/updatedBy)",
+    "PostgreSQL database with TypeORM",
+    "Foreign key relationships with @JoinColumn decorators",
+    "Eager loading for related entities",
+    "Cascade delete for order details"
+  ],
+
+  "architecturalPatterns": [
+    "Modular Monolith - Organized by feature modules",
+    "RESTful API - Standard HTTP methods and status codes",
+    "DTO Pattern - Data Transfer Objects for validation",
+    "Repository Pattern - TypeORM repositories for data access",
+    "Dependency Injection - NestJS built-in DI container",
+    "Base Entity Pattern - Shared fields via abstract base class",
+    "Enum Centralization - All enums in dedicated directory",
+    "Soft Delete Pattern - Logical deletion via deletedAt field",
+    "Eager Loading - Related entities loaded automatically where needed",
+    "Cascade Operations - Automatic save/delete of related entities"
+  ],
+
+  "entityRelationships": {
+    "Product → Category": {
+      "type": "ManyToOne",
+      "description": "Each product belongs to one category",
+      "foreignKey": "categoryId",
+      "joinColumn": "@JoinColumn({ name: 'categoryId' })",
+      "eagerLoading": true
+    },
+    "Order → OrderDetail": {
+      "type": "OneToMany",
+      "description": "Each order has multiple order details (line items)",
+      "relationshipField": "orderDetails",
+      "cascade": true
+    },
+    "OrderDetail → Order": {
+      "type": "ManyToOne",
+      "description": "Each order detail belongs to one order",
+      "foreignKey": "orderId",
+      "joinColumn": "@JoinColumn({ name: 'orderId' })",
+      "cascadeDelete": true
+    },
+    "OrderDetail → Product": {
+      "type": "ManyToOne",
+      "description": "Each order detail references one product",
+      "foreignKey": "productId",
+      "joinColumn": "@JoinColumn({ name: 'productId' })",
+      "eagerLoading": true
+    }
+  },
+
+  "developmentWorkflow": {
+    "setup": [
+      "1. Clone the repository",
+      "2. Install dependencies: npm install",
+      "3. Copy .env.example to .env and configure database credentials",
+      "4. Ensure PostgreSQL is running",
+      "5. Database will be auto-created and synchronized on first run"
+    ],
+    "commands": {
+      "install": "npm install",
+      "build": "npm run build",
+      "start": "npm run start",
+      "startDev": "npm run start:dev (with hot reload)",
+      "startProd": "npm run start:prod",
+      "test": "npm test",
+      "testE2E": "npm run test:e2e",
+      "lint": "npm run lint",
+      "format": "npm run format"
+    },
+    "accessPoints": {
+      "api": "http://localhost:3000",
+      "swagger": "http://localhost:3000/api"
+    }
+  },
+
+  "contextDocumentation": {
+    "purpose": "Provide comprehensive documentation for AI-assisted development",
+    "entryPoint": "context/main.json",
+    "guide": "CONTEXT_SYSTEM_GUIDE.md",
+    "files": [
+      "context/main.json - Project overview and entry point",
+      "context/overview.json - High-level architecture (this file)",
+      "context/category.json - Categories module documentation",
+      "context/product.json - Products module documentation",
+      "context/order.json - Orders module documentation",
+      "context/revenue.json - Revenue module documentation"
+    ],
+    "usage": "AI agents should read main.json first, then consult module-specific context files for detailed information"
+  },
+
+  "totalEndpoints": 17,
+  "totalEntities": 4,
+  "buildStatus": "Success",
+  "lastUpdated": "2025-10-25"
+}
+
