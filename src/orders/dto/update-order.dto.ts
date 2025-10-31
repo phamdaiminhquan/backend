@@ -1,6 +1,6 @@
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { OrderStatus } from '../../enums/order.enum';
+import { OrderStatus, PaymentMethod } from '../../enums/order.enum';
 
 export class UpdateOrderDto {
   @ApiPropertyOptional({
@@ -11,6 +11,11 @@ export class UpdateOrderDto {
   @IsOptional()
   @IsEnum(OrderStatus)
   status?: OrderStatus;
+
+  @ApiPropertyOptional({enum: PaymentMethod})
+  @IsOptional()
+  @IsEnum(PaymentMethod)
+  paymentMethod?: PaymentMethod;
 
   @ApiPropertyOptional({
     description: 'Cancellation reason (required when status is cancelled)',

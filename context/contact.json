@@ -1,0 +1,80 @@
+{
+  "moduleName": "Contact",
+  "path": "src/contact",
+  "purpose": "Capture customer contact and feedback messages and expose admin review endpoints",
+  "entity": {
+    "name": "ContactMessage",
+    "path": "src/contact/entities/contact-message.entity.ts",
+    "extends": "BaseEntity",
+    "fields": [
+      { "name": "id", "type": "number", "description": "Primary key" },
+      { "name": "name", "type": "string", "description": "Customer name", "decorator": "@Column({ length: 255 })" },
+      { "name": "email", "type": "string", "description": "Customer email", "decorator": "@Column({ length: 255 })" },
+      { "name": "phone", "type": "string", "description": "Optional phone", "decorator": "@Column({ length: 20, nullable: true })", "required": false },
+      { "name": "message", "type": "string", "description": "Message content", "decorator": "@Column({ type: 'text' })" },
+      { "name": "status", "type": "ContactStatus", "description": "new/in_progress/resolved", "decorator": "@Column({ enum: ContactStatus, default: ContactStatus.NEW })", "default": "new" },
+      { "name": "userId", "type": "number", "description": "Optional linked user", "decorator": "@Column({ type: 'int', nullable: true })", "required": false },
+      { "name": "user", "type": "User", "description": "Linked user relationship", "decorator": "@ManyToOne(() => User, (user) => user.contactMessages, { onDelete: 'SET NULL' })", "joinColumn": "@JoinColumn({ name: 'userId' })", "relationshipType": "ManyToOne", "required": false }
+    ]
+  },
+  "enums": {
+    "ContactStatus": {
+      "path": "src/enums/contact.enum.ts",
+      "values": ["NEW", "IN_PROGRESS", "RESOLVED"]
+    }
+  },
+  "dtos": {
+    "create": {
+      "path": "src/contact/dto/create-contact.dto.ts",
+      "fields": [
+        { "name": "name", "type": "string", "validators": ["@IsString()", "@MinLength(1)"] },
+        { "name": "email", "type": "string", "validators": ["@IsEmail()"] },
+        { "name": "phone", "type": "string", "validators": ["@IsOptional()", "@IsString()"], "required": false },
+        { "name": "message", "type": "string", "validators": ["@IsString()", "@MinLength(5)"] }
+      ]
+    },
+    "filter": {
+      "path": "src/contact/dto/filter-contact.dto.ts",
+      "fields": [
+        { "name": "status", "type": "ContactStatus", "validators": ["@IsOptional()", "@IsEnum(ContactStatus)"] }
+      ]
+    }
+  },
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/contact",
+      "description": "Submit a contact or feedback message",
+      "requestBody": "CreateContactDto",
+      "responseBody": "ContactMessage",
+      "statusCode": 201,
+      "validation": ["If user is authenticated their id is attached automatically"],
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/contact",
+      "description": "List contact messages (admin/staff only)",
+      "queryParameters": [
+        { "name": "status", "type": "ContactStatus", "description": "Optional status filter" }
+      ],
+      "responseBody": "ContactMessage[]",
+      "statusCode": 200,
+      "security": ["Bearer", "Role: admin|staff"]
+    }
+  ],
+  "businessRules": [
+    "Public endpoint allows unauthenticated submission",
+    "Authenticated users are recorded on message via userId",
+    "Admin/staff role is required to list contact messages",
+    "Status defaults to 'new' and can be updated via repository/service layer when moderation happens"
+  ],
+  "dependencies": ["Users Module"],
+  "files": {
+    "controller": "src/contact/contact.controller.ts",
+    "service": "src/contact/contact.service.ts",
+    "module": "src/contact/contact.module.ts",
+    "entity": "src/contact/entities/contact-message.entity.ts",
+    "dtos": "src/contact/dto/"
+  }
+}

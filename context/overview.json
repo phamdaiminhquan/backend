@@ -48,13 +48,15 @@
       "path": "src/orders",
       "description": "Manage orders with lifecycle and order details",
       "entities": ["Order", "OrderDetail"],
-      "endpoints": 5,
+      "endpoints": 6,
       "features": [
         "Create order with order details",
-        "Get all orders",
-        "Get order by ID",
-        "Update order status",
-        "Cancel order with reason"
+        "Get current user's order history",
+        "Admin/staff listing with customer filter",
+        "Get order by ID with ownership enforcement",
+        "Update order status with role restrictions",
+        "Cancel order with reason",
+        "Award reward points when order is paid"
       ]
     },
     {
@@ -66,6 +68,83 @@
       "features": [
         "Get daily revenue report",
         "Get revenue report by date range"
+      ]
+    },
+    {
+      "name": "Upload",
+      "path": "src/upload",
+      "description": "Handle secure file uploads for assets",
+      "entities": ["FileUpload"],
+      "endpoints": 4,
+      "features": [
+        "Upload product images",
+        "List uploaded images",
+        "Get single image metadata",
+        "Delete image with file cleanup"
+      ]
+    },
+    {
+      "name": "Auth",
+      "path": "src/auth",
+      "description": "Authentication workflows with JWT access/refresh tokens",
+      "entities": ["User"],
+      "endpoints": 6,
+      "features": [
+        "User registration",
+        "JWT login and logout",
+        "Refresh token rotation",
+        "Profile retrieval and update",
+        "Password change with current password validation",
+        "Bearer token guard for protected APIs"
+      ]
+    },
+    {
+      "name": "Users",
+      "path": "src/users",
+      "description": "User persistence, password hashing, and reward point storage",
+      "entities": ["User"],
+      "endpoints": 0,
+      "features": [
+        "Create user with hashed password",
+        "Lookup by email or id",
+        "Store refresh token hashes",
+        "Reward point adjustments"
+      ]
+    },
+    {
+      "name": "Rewards",
+      "path": "src/rewards",
+      "description": "Reward point balance, history, and redemption",
+      "entities": ["RewardTransaction"],
+      "endpoints": 4,
+      "features": [
+        "Get current reward balance",
+        "List reward history",
+        "Redeem reward points with validation",
+        "Expose available reward offers"
+      ]
+    },
+    {
+      "name": "Contact",
+      "path": "src/contact",
+      "description": "Customer contact requests and admin review",
+      "entities": ["ContactMessage"],
+      "endpoints": 2,
+      "features": [
+        "Submit public contact message",
+        "Filter messages by status for staff"
+      ]
+    },
+    {
+      "name": "Stats",
+      "path": "src/stats",
+      "description": "Admin analytics dashboard data",
+      "entities": [],
+      "endpoints": 3,
+      "features": [
+        "Dashboard summary metrics",
+        "Sales trend aggregation",
+        "Top product leaderboard"
       ]
     }
   ],
@@ -131,15 +210,19 @@
       "DB_PASSWORD - PostgreSQL database password",
       "DB_NAME - PostgreSQL database name (default: coffee_shop)",
       "NODE_ENV - Environment (development/production)",
-      "PORT - Application port (default: 3000)"
+      "PORT - Application port (default: 3000)",
+      "JWT_ACCESS_SECRET - Secret used to sign access tokens",
+      "JWT_REFRESH_SECRET - Secret used to sign refresh tokens",
+      "JWT_ACCESS_EXPIRES_IN - Access token TTL (e.g., 15m)",
+      "JWT_REFRESH_EXPIRES_IN - Refresh token TTL (e.g., 7d)"
     ],
     "configFile": ".env.example"
   },
 
   "apiDocumentation": {
     "framework": "Swagger/OpenAPI",
-    "endpoint": "/api",
-    "url": "http://localhost:3000/api",
+    "endpoint": "/api/docs",
+    "url": "http://localhost:3000/api/docs",
     "features": [
       "Interactive API documentation",
       "Request/response schemas",
@@ -153,12 +236,14 @@
   "keyFeatures": [
     "Complete CRUD operations for categories and products",
     "Order management with lifecycle (pending_payment → paid/cancelled)",
+    "Authenticated customer workflows with JWT access/refresh tokens",
     "Soft delete for products (preserves data)",
+    "Reward point accrual on paid orders and redemption handling",
     "Revenue reporting with daily and range-based analytics",
-    "Payment method breakdown (cash/bank transfer)",
-    "Customer purchase pattern tracking",
-    "Automatic database synchronization",
-    "Environment-based configuration",
+    "Dashboard statistics with sales trends and top product leaderboard",
+    "Secure file upload with validation and database tracking",
+    "Contact form submission with admin review capabilities",
+    "Environment-based configuration and configurable JWT expiry",
     "Comprehensive API documentation with Swagger",
     "Input validation with class-validator",
     "Audit trail support (createdBy/updatedBy)",
@@ -232,7 +317,7 @@
     },
     "accessPoints": {
       "api": "http://localhost:3000",
-      "swagger": "http://localhost:3000/api"
+      "swagger": "http://localhost:3000/api/docs"
     }
   },
 
@@ -251,8 +336,8 @@
     "usage": "AI agents should read main.json first, then consult module-specific context files for detailed information"
   },
 
-  "totalEndpoints": 17,
-  "totalEntities": 4,
+  "totalEndpoints": 37,
+  "totalEntities": 8,
   "buildStatus": "Success",
   "lastUpdated": "2025-10-25"
 }

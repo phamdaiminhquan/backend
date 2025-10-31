@@ -1,0 +1,58 @@
+{
+  "moduleName": "Stats",
+  "path": "src/stats",
+  "purpose": "Provide aggregated dashboard metrics for admin views",
+  "services": {
+    "statsService": {
+      "path": "src/stats/stats.service.ts",
+      "methods": [
+        "getDashboard(): returns total orders, status counts, revenue, and top products",
+        "getSales(startDate?, endDate?): aggregates paid order totals per day",
+        "getTopProducts(limit?): returns product leaderboard by quantity and revenue",
+        "sumRevenue(start?, end?): helper to sum paid order detail subtotals"
+      ]
+    }
+  },
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/stats/dashboard",
+      "description": "Get dashboard summary metrics (admin/staff only)",
+      "responseBody": "{ totalOrders, pendingOrders, paidOrders, cancelledOrders, totalRevenue, todayRevenue, topProducts }",
+      "statusCode": 200,
+      "security": ["Bearer", "Role: admin|staff"]
+    },
+    {
+      "method": "GET",
+      "path": "/stats/sales",
+      "description": "Get daily sales totals between dates (admin/staff only)",
+      "queryParameters": [
+        { "name": "startDate", "type": "string", "description": "YYYY-MM-DD inclusive", "required": false },
+        { "name": "endDate", "type": "string", "description": "YYYY-MM-DD inclusive", "required": false }
+      ],
+      "responseBody": "Array<{ date: string; total: number }>",
+      "statusCode": 200,
+      "security": ["Bearer", "Role: admin|staff"]
+    },
+    {
+      "method": "GET",
+      "path": "/stats/products",
+      "description": "Get top selling products (admin/staff only)",
+      "responseBody": "Array<{ productId: number; productName: string; quantity: number; revenue: number }>",
+      "statusCode": 200,
+      "security": ["Bearer", "Role: admin|staff"]
+    }
+  ],
+  "businessRules": [
+    "Stats endpoints require JWT authentication and admin/staff role",
+    "Only paid orders contribute to revenue and sales figures",
+    "Sales endpoint defaults to last 7 days when no range provided",
+    "Top products endpoint limits to 5 items by default"
+  ],
+  "dependencies": ["Orders Module"],
+  "files": {
+    "controller": "src/stats/stats.controller.ts",
+    "service": "src/stats/stats.service.ts",
+    "module": "src/stats/stats.module.ts"
+  }
+}

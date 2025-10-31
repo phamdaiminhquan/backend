@@ -48,11 +48,12 @@ export class CreateOrderDto {
   @IsNumber()
   userId?: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Payment method',
     enum: PaymentMethod,
     example: PaymentMethod.CASH,
   })
+  @IsOptional()
   @IsEnum(PaymentMethod)
   paymentMethod: PaymentMethod;
 

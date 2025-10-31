@@ -242,19 +242,29 @@
     {
       "method": "POST",
       "path": "/orders",
-      "description": "Create a new order with order details",
+      "description": "Create a new order with order details (authenticated)",
       "requestBody": "CreateOrderDto",
       "responseBody": "Order with orderDetails",
       "statusCode": 201,
       "validation": [
         "Order must have at least one item",
-        "All products must exist"
-      ]
+        "All products must exist",
+        "Authenticated user id is attached to the order when available"
+      ],
+      "security": ["Bearer"]
     },
     {
       "method": "GET",
       "path": "/orders",
-      "description": "Get all orders with optional customer name filter",
+      "description": "Get all orders for the current authenticated user",
+      "responseBody": "Order[]",
+      "statusCode": 200,
+      "security": ["Bearer"]
+    },
+    {
+      "method": "GET",
+      "path": "/orders/all",
+      "description": "Get all orders with optional customer name filter (admin/staff only)",
       "queryParameters": [
         {
           "name": "customerName",
@@ -263,12 +273,13 @@
         }
       ],
       "responseBody": "Order[]",
-      "statusCode": 200
+      "statusCode": 200,
+      "security": ["Bearer", "Role: admin|staff"]
     },
     {
       "method": "GET",
       "path": "/orders/:id",
-      "description": "Get a specific order with all details",
+      "description": "Get a specific order with all details (owner or staff/admin)",
       "parameters": [
         {
           "name": "id",
@@ -278,12 +289,13 @@
       ],
       "responseBody": "Order with orderDetails and products",
       "statusCode": 200,
-      "errors": ["404 - Order not found"]
+      "security": ["Bearer"],
+      "errors": ["403 - Forbidden when accessing another user's order", "404 - Order not found"]
     },
     {
-      "method": "PATCH",
-      "path": "/orders/:id",
-      "description": "Update order status",
+      "method": "PUT",
+      "path": "/orders/:id/status",
+      "description": "Update order status (admin/staff only)",
       "parameters": [
         {
           "name": "id",
@@ -295,12 +307,13 @@
       "responseBody": "Order",
       "statusCode": 200,
       "validation": "If status is 'cancelled', cancellationReason is required",
-      "errors": ["404 - Order not found", "400 - Cancellation reason required"]
+      "errors": ["404 - Order not found", "400 - Cancellation reason required"],
+      "security": ["Bearer", "Role: admin|staff"]
     },
     {
       "method": "DELETE",
       "path": "/orders/:id",
-      "description": "Delete an order",
+      "description": "Delete an order (admin only)",
       "parameters": [
         {
           "name": "id",
@@ -309,7 +322,8 @@
         }
       ],
       "statusCode": 200,
-      "errors": ["404 - Order not found"]
+      "errors": ["404 - Order not found"],
+      "security": ["Bearer", "Role: admin"]
     }
   ],
   "relationships": {
@@ -380,10 +394,13 @@
     "Status defaults to 'pending_payment'",
     "Cancellation reason is mandatory when status is 'cancelled'",
     "Order details are cascade deleted when order is deleted",
-    "Product is eager-loaded with order details"
+    "Product is eager-loaded with order details",
+    "Order endpoints require JWT authentication; /orders/all, status updates, and deletion require admin or staff role",
+    "Paid orders award reward points to the associated user (1 point per 1,000 currency units spent)",
+    "Customers can only view their own orders unless they have admin/staff roles"
   ],
-  "dependencies": ["Products Module"],
-  "usedBy": ["Revenue Module"],
+  "dependencies": ["Products Module", "Rewards Module"],
+  "usedBy": ["Revenue Module", "Stats Module"],
   "files": {
     "controller": "src/orders/orders.controller.ts",
     "service": "src/orders/orders.service.ts",

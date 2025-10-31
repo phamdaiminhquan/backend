@@ -5,11 +5,13 @@ import { OrdersController } from './orders.controller';
 import { Order } from './entities/order.entity';
 import { OrderDetail } from './entities/order-detail.entity';
 import { ProductsModule } from '../products/products.module';
+import { RewardsModule } from '../rewards/rewards.module';
+import { RolesGuard } from '../common/guards/roles.guard';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, OrderDetail]), ProductsModule],
+  imports: [TypeOrmModule.forFeature([Order, OrderDetail]), ProductsModule, RewardsModule],
   controllers: [OrdersController],
-  providers: [OrdersService],
+  providers: [OrdersService, RolesGuard],
   exports: [OrdersService],
 })
 export class OrdersModule {}

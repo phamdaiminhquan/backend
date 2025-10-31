@@ -1,0 +1,310 @@
+{
+  "module": "Upload",
+  "description": "File upload module for handling product image uploads with security validation and database tracking",
+  "baseEndpoint": "/upload",
+  "totalEndpoints": 4,
+  
+  "entities": {
+    "FileUpload": {
+      "tableName": "file_uploads",
+      "description": "Tracks all uploaded files with metadata",
+      "extendsBaseEntity": true,
+      "fields": {
+        "id": {
+          "type": "number",
+          "description": "Auto-generated primary key",
+          "decorator": "@PrimaryGeneratedColumn()"
+        },
+        "originalFilename": {
+          "type": "string",
+          "description": "Original filename from user upload",
+          "decorator": "@Column({ type: 'varchar', length: 255 })",
+          "example": "cappuccino.jpg"
+        },
+        "savedFilename": {
+          "type": "string",
+          "description": "Unique filename saved on server (timestamp-random-originalname.ext)",
+          "decorator": "@Column({ type: 'varchar', length: 255, unique: true })",
+          "example": "1234567890-abc123-cappuccino.jpg"
+        },
+        "filepath": {
+          "type": "string",
+          "description": "Relative path to the file",
+          "decorator": "@Column({ type: 'varchar', length: 500 })",
+          "example": "uploads/1234567890-abc123-cappuccino.jpg"
+        },
+        "filesize": {
+          "type": "number",
+          "description": "File size in bytes",
+          "decorator": "@Column({ type: 'bigint' })",
+          "example": 245678
+        },
+        "mimetype": {
+          "type": "string",
+          "description": "Validated MIME type of the file",
+          "decorator": "@Column({ type: 'varchar', length: 100 })",
+          "example": "image/jpeg"
+        },
+        "uploadedBy": {
+          "type": "number",
+          "description": "User ID who uploaded the file (optional)",
+          "decorator": "@Column({ type: 'int', nullable: true })",
+          "example": 1
+        },
+        "createdAt": {
+          "type": "Date",
+          "description": "Upload timestamp (from BaseEntity)",
+          "decorator": "@CreateDateColumn()"
+        },
+        "updatedAt": {
+          "type": "Date",
+          "description": "Last update timestamp (from BaseEntity)",
+          "decorator": "@UpdateDateColumn()"
+        },
+        "deletedAt": {
+          "type": "Date",
+          "description": "Soft delete timestamp (from BaseEntity)",
+          "decorator": "@Column({ type: 'timestamp', nullable: true })"
+        }
+      },
+      "methods": {
+        "getUrl": {
+          "description": "Generate public URL to access the file",
+          "parameters": ["baseUrl: string"],
+          "returns": "string",
+          "example": "http://localhost:3000/uploads/1234567890-abc123-cappuccino.jpg"
+        }
+      }
+    }
+  },
+
+  "dtos": {
+    "UploadResponseDto": {
+      "description": "Response DTO for file upload operations",
+      "fields": {
+        "id": "number",
+        "originalFilename": "string",
+        "savedFilename": "string",
+        "filepath": "string",
+        "url": "string (public URL)",
+        "filesize": "number",
+        "mimetype": "string",
+        "createdAt": "Date"
+      }
+    }
+  },
+
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/upload/image",
+      "summary": "Upload a single image file",
+      "requestType": "multipart/form-data",
+      "requestBody": {
+        "fieldName": "file",
+        "type": "binary",
+        "description": "Image file (jpg, jpeg, png, gif, webp)"
+      },
+      "responseStatus": 201,
+      "responseType": "UploadResponseDto",
+      "validation": {
+        "allowedExtensions": [".jpg", ".jpeg", ".png", ".gif", ".webp"],
+        "allowedMimeTypes": ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"],
+        "maxFileSize": "5MB (5242880 bytes)"
+      },
+      "errorResponses": [
+        {
+          "status": 400,
+          "description": "Invalid file type, size, or missing file"
+        },
+        {
+          "status": 413,
+          "description": "File size exceeds 5MB"
+        },
+        {
+          "status": 500,
+          "description": "Failed to save file"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/upload/images",
+      "summary": "Get list of all uploaded images",
+      "responseStatus": 200,
+      "responseType": "UploadResponseDto[]",
+      "businessLogic": "Returns all non-deleted files ordered by createdAt DESC"
+    },
+    {
+      "method": "GET",
+      "path": "/upload/image/:id",
+      "summary": "Get specific image metadata by ID",
+      "pathParameters": {
+        "id": "number (File upload ID)"
+      },
+      "responseStatus": 200,
+      "responseType": "UploadResponseDto",
+      "errorResponses": [
+        {
+          "status": 404,
+          "description": "Image not found"
+        }
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/upload/image/:id",
+      "summary": "Delete image file and database record",
+      "pathParameters": {
+        "id": "number (File upload ID)"
+      },
+      "responseStatus": 200,
+      "responseType": "{ message: string }",
+      "businessLogic": "Deletes physical file from disk and soft-deletes database record",
+      "errorResponses": [
+        {
+          "status": 404,
+          "description": "Image not found"
+        }
+      ]
+    }
+  ],
+
+  "security": {
+    "fileExtensionValidation": {
+      "description": "Validates file extension against whitelist",
+      "allowedExtensions": [".jpg", ".jpeg", ".png", ".gif", ".webp"]
+    },
+    "mimeTypeValidation": {
+      "description": "Validates actual MIME type to prevent malicious files",
+      "allowedMimeTypes": ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+    },
+    "fileSizeLimit": {
+      "description": "Maximum file size limit",
+      "maxSize": "5MB (5242880 bytes)"
+    },
+    "filenameSanitization": {
+      "description": "Sanitizes filename to prevent path traversal attacks",
+      "actions": [
+        "Remove path separators (/, \\)",
+        "Remove parent directory references (..)",
+        "Replace special characters with underscores"
+      ]
+    },
+    "uniqueFilenameGeneration": {
+      "description": "Generates unique filename to prevent conflicts",
+      "format": "{timestamp}-{random}-{originalname}.{ext}",
+      "example": "1234567890-abc123-cappuccino.jpg"
+    }
+  },
+
+  "configuration": {
+    "uploadDirectory": "uploads/",
+    "storageType": "disk",
+    "multerConfig": "src/upload/config/multer.config.ts",
+    "staticFileServing": {
+      "enabled": true,
+      "prefix": "/uploads/",
+      "directory": "uploads/"
+    }
+  },
+
+  "utilities": {
+    "fileValidationUtil": {
+      "file": "src/upload/utils/file-validation.util.ts",
+      "functions": [
+        "validateFileExtension(filename: string): void",
+        "validateMimeType(mimetype: string): void",
+        "validateFileSize(size: number): void",
+        "sanitizeFilename(filename: string): string",
+        "generateUniqueFilename(originalFilename: string): string",
+        "validateImageFile(file: Express.Multer.File): void"
+      ]
+    }
+  },
+
+  "integrationWithProducts": {
+    "workflow": [
+      "1. Frontend uploads image via POST /upload/image",
+      "2. Backend returns UploadResponseDto with filepath and url",
+      "3. Frontend uses filepath when creating/updating product",
+      "4. Product.image field stores the filepath (e.g., 'uploads/1234567890-abc123-cappuccino.jpg')",
+      "5. Frontend constructs full URL: baseUrl + product.image"
+    ],
+    "recommendedApproach": "Store relative filepath in Product.image for flexibility",
+    "example": {
+      "uploadResponse": {
+        "filepath": "uploads/1234567890-abc123-cappuccino.jpg",
+        "url": "http://localhost:3000/uploads/1234567890-abc123-cappuccino.jpg"
+      },
+      "productCreation": {
+        "image": "uploads/1234567890-abc123-cappuccino.jpg"
+      }
+    }
+  },
+
+  "businessRules": {
+    "fileUpload": [
+      "Only image files are allowed (jpg, jpeg, png, gif, webp)",
+      "Maximum file size is 5MB",
+      "Files are stored in uploads/ directory",
+      "Filenames are sanitized and made unique",
+      "All uploads are tracked in database"
+    ],
+    "fileDeletion": [
+      "Deletes physical file from disk",
+      "Soft-deletes database record (sets deletedAt)",
+      "Continues with database deletion even if file deletion fails"
+    ],
+    "fileRetrieval": [
+      "Only returns non-deleted files (deletedAt IS NULL)",
+      "Files ordered by newest first (createdAt DESC)"
+    ]
+  },
+
+  "errorHandling": {
+    "invalidFileType": {
+      "status": 400,
+      "message": "Invalid file extension. Allowed extensions: .jpg, .jpeg, .png, .gif, .webp"
+    },
+    "fileTooLarge": {
+      "status": 400,
+      "message": "File size exceeds maximum allowed size of 5MB"
+    },
+    "noFileProvided": {
+      "status": 400,
+      "message": "No file provided"
+    },
+    "fileNotFound": {
+      "status": 404,
+      "message": "File with ID {id} not found"
+    },
+    "saveFailed": {
+      "status": 500,
+      "message": "Failed to save file metadata",
+      "behavior": "Deletes uploaded file if database save fails"
+    }
+  },
+
+  "dependencies": {
+    "npm": [
+      "@nestjs/platform-express (built-in Multer support)",
+      "@types/multer (dev dependency)"
+    ],
+    "modules": [
+      "TypeOrmModule.forFeature([FileUpload])"
+    ]
+  },
+
+  "relatedFiles": [
+    "src/upload/upload.module.ts",
+    "src/upload/upload.controller.ts",
+    "src/upload/upload.service.ts",
+    "src/upload/entities/file-upload.entity.ts",
+    "src/upload/dto/upload-response.dto.ts",
+    "src/upload/config/multer.config.ts",
+    "src/upload/utils/file-validation.util.ts",
+    "FILE_UPLOAD_INTEGRATION_GUIDE.md"
+  ]
+}
+

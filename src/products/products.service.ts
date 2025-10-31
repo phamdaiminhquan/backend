@@ -15,7 +15,7 @@ export class ProductsService {
   ) {}
 
   async create(createProductDto: CreateProductDto): Promise<Product> {
-    // Verify category exists
+    // Verify category existsb 
     await this.categoriesService.findOne(createProductDto.categoryId);
 
     const product = this.productsRepository.create(createProductDto);
@@ -23,14 +23,12 @@ export class ProductsService {
   }
 
   async findAll(categoryId?: number): Promise<Product[]> {
-    const query = this.productsRepository.createQueryBuilder('product')
-      .where('product.deletedAt IS NULL');
+    const result = this.productsRepository.find({
+      where: { deletedAt: IsNull(), categoryId },
+      order: { createdAt: 'DESC' },
+    });
 
-    if (categoryId) {
-      query.andWhere('product.categoryId = :categoryId', { categoryId });
-    }
-
-    return query.orderBy('product.createdAt', 'DESC').getMany();
+    return result;
   }
 
   async findOne(id: number): Promise<Product> {

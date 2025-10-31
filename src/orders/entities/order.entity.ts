@@ -11,7 +11,7 @@ export class Order extends BaseEntity {
   @Column({ type: 'int', nullable: true })
   userId: number;
 
-  @Column({ type: 'enum', enum: PaymentMethod })
+  @Column({ type: 'enum', enum: PaymentMethod, nullable: true })
   paymentMethod: PaymentMethod;
 
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING_PAYMENT })

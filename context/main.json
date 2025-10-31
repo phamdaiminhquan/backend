@@ -37,7 +37,7 @@
         "name": "Orders",
         "path": "src/orders",
         "purpose": "Manage orders with lifecycle and order details",
-        "endpoints": 5,
+        "endpoints": 6,
         "contextFile": "context/order.json"
       },
       {
@@ -46,6 +46,95 @@
         "purpose": "Generate revenue reports with payment method breakdown",
         "endpoints": 2,
         "contextFile": "context/revenue.json"
+      },
+      {
+        "name": "User",
+        "table": "users",
+        "fields": ["id", "email", "passwordHash", "fullName", "phone", "role", "rewardPoints", "refreshTokenHash", "createdAt", "updatedAt"],
+        "relationships": [
+          {
+            "type": "OneToMany",
+            "target": "RewardTransaction",
+            "property": "rewardTransactions"
+          },
+          {
+            "type": "OneToMany",
+            "target": "ContactMessage",
+            "property": "contactMessages"
+          }
+        ]
+      },
+      {
+        "name": "RewardTransaction",
+        "table": "reward_transactions",
+        "fields": ["id", "userId", "type", "points", "balanceAfter", "description", "createdAt", "updatedAt", "createdBy", "updatedBy", "deletedAt"],
+        "relationships": [
+          {
+            "type": "ManyToOne",
+            "target": "User",
+            "foreignKey": "userId",
+            "joinColumn": "@JoinColumn({ name: 'userId' })",
+            "cascadeDelete": true
+          }
+        ]
+      },
+      {
+        "name": "ContactMessage",
+        "table": "contact_messages",
+        "fields": ["id", "name", "email", "phone", "message", "status", "userId", "createdAt", "updatedAt", "createdBy", "updatedBy", "deletedAt"],
+        "relationships": [
+          {
+            "type": "ManyToOne",
+            "target": "User",
+            "foreignKey": "userId",
+            "joinColumn": "@JoinColumn({ name: 'userId' })",
+            "nullable": true
+          }
+        ]
+      },
+      {
+        "name": "Upload",
+        "path": "src/upload",
+        "purpose": "Handle secure file uploads for product images with validation and database tracking",
+        "endpoints": 4,
+      "OrderDetail → Product": "ManyToOne with eager loading (each order detail references one product)",
+      "RewardTransaction → User": "ManyToOne (reward transactions belong to a user)",
+      "ContactMessage → User": "ManyToOne nullable (contact message may be linked to a user)"
+      },
+      {
+        "name": "Auth",
+        "path": "src/auth",
+        "purpose": "Handle user authentication, JWT token issuance, and session lifecycle",
+        "endpoints": 6,
+        "contextFile": "context/auth.json"
+      },
+      {
+        "name": "Users",
+        "path": "src/users",
+        "purpose": "Provide persistence and domain logic for user accounts and reward balances",
+        "endpoints": 0,
+        "contextFile": "context/users.json"
+      },
+      {
+        "name": "Rewards",
+        "path": "src/rewards",
+        "purpose": "Manage reward points, transaction history, and redemption offers",
+        "endpoints": 4,
+        "contextFile": "context/rewards.json"
+      },
+      {
+        "name": "Contact",
+        "path": "src/contact",
+        "purpose": "Collect customer contact messages and expose admin review endpoints",
+        "endpoints": 2,
+        "contextFile": "context/contact.json"
+      },
+      {
+        "name": "Stats",
+        "path": "src/stats",
+        "purpose": "Provide aggregated statistics for the admin dashboard",
+        "endpoints": 3,
+        "contextFile": "context/stats.json"
       }
     ],
     "sharedComponents": {
@@ -71,6 +160,18 @@
           {
             "name": "order.enum.ts",
             "enums": ["OrderStatus", "PaymentMethod"]
+          },
+          {
+            "name": "user.enum.ts",
+            "enums": ["UserRole"]
+          },
+          {
+            "name": "reward.enum.ts",
+            "enums": ["RewardTransactionType"]
+          },
+          {
+            "name": "contact.enum.ts",
+            "enums": ["ContactStatus"]
           }
         ]
       }
@@ -133,21 +234,74 @@
             "eagerLoading": true
           }
         ]
+      },
+      {
+        "name": "FileUpload",
+        "table": "file_uploads",
+        "fields": ["id", "originalFilename", "savedFilename", "filepath", "filesize", "mimetype", "uploadedBy", "createdAt", "updatedAt", "createdBy", "updatedBy", "deletedAt"],
+        "relationships": []
+      },
+      {
+        "name": "User",
+        "table": "users",
+        "fields": ["id", "email", "passwordHash", "fullName", "phone", "role", "rewardPoints", "refreshTokenHash", "createdAt", "updatedAt", "createdBy", "updatedBy", "deletedAt"],
+        "relationships": [
+          {
+            "type": "OneToMany",
+            "target": "RewardTransaction",
+            "property": "rewardTransactions"
+          },
+          {
+            "type": "OneToMany",
+            "target": "ContactMessage",
+            "property": "contactMessages"
+          }
+        ]
+      },
+      {
+        "name": "RewardTransaction",
+        "table": "reward_transactions",
+        "fields": ["id", "userId", "type", "points", "balanceAfter", "description", "createdAt", "updatedAt", "createdBy", "updatedBy", "deletedAt"],
+        "relationships": [
+          {
+            "type": "ManyToOne",
+            "target": "User",
+            "foreignKey": "userId",
+            "joinColumn": "@JoinColumn({ name: 'userId' })",
+            "cascadeDelete": true
+          }
+        ]
+      },
+      {
+        "name": "ContactMessage",
+        "table": "contact_messages",
+        "fields": ["id", "name", "email", "phone", "message", "status", "userId", "createdAt", "updatedAt", "createdBy", "updatedBy", "deletedAt"],
+        "relationships": [
+          {
+            "type": "ManyToOne",
+            "target": "User",
+            "foreignKey": "userId",
+            "joinColumn": "@JoinColumn({ name: 'userId' })",
+            "nullable": true
+          }
+        ]
       }
     ],
     "relationshipSummary": {
       "Product → Category": "ManyToOne (each product belongs to one category)",
       "Order → OrderDetail": "OneToMany (each order has multiple order details)",
       "OrderDetail → Order": "ManyToOne with cascade delete (each order detail belongs to one order)",
-      "OrderDetail → Product": "ManyToOne with eager loading (each order detail references one product)"
+      "OrderDetail → Product": "ManyToOne with eager loading (each order detail references one product)",
+      "RewardTransaction → User": "ManyToOne (reward transactions belong to a user)",
+      "ContactMessage → User": "ManyToOne nullable (contact messages optionally link to a user)"
     },
     "synchronization": "Enabled in non-production environments"
   },
 
   "apiDocumentation": {
     "framework": "Swagger/OpenAPI",
-    "endpoint": "/api",
-    "url": "http://localhost:3000/api",
+    "endpoint": "/api/docs",
+    "url": "http://localhost:3000/api/docs",
     "features": [
       "Interactive API documentation",
       "Request/response schemas",
@@ -193,6 +347,26 @@
         "name": "PORT",
         "description": "Application port",
         "default": "3000"
+      },
+      {
+        "name": "JWT_ACCESS_SECRET",
+        "description": "Secret used to sign access tokens",
+        "default": "changeThisAccessSecret"
+      },
+      {
+        "name": "JWT_REFRESH_SECRET",
+        "description": "Secret used to sign refresh tokens",
+        "default": "changeThisRefreshSecret"
+      },
+      {
+        "name": "JWT_ACCESS_EXPIRES_IN",
+        "description": "Access token lifetime (e.g., 15m)",
+        "default": "15m"
+      },
+      {
+        "name": "JWT_REFRESH_EXPIRES_IN",
+        "description": "Refresh token lifetime (e.g., 7d)",
+        "default": "7d"
       }
     ],
     "configFile": ".env.example"
@@ -219,7 +393,7 @@
     },
     "accessPoints": {
       "api": "http://localhost:3000",
-      "swagger": "http://localhost:3000/api"
+      "swagger": "http://localhost:3000/api/docs"
     }
   },
 
@@ -260,6 +434,34 @@
   },
 
   "recentArchitecturalChanges": [
+    {
+      "change": "JWT Authentication, Rewards, Contact, and Stats modules",
+      "date": "2025-10-31",
+      "description": "Introduced authentication, reward management, contact handling, and admin dashboard analytics to align with frontend endpoints",
+      "impact": [
+        "Added Auth module with JWT access/refresh flow and profile management",
+        "Created Users module with User entity, password hashing helpers, and reward balance storage",
+        "Added Rewards module with RewardTransaction entity, balance endpoints, and redemption logic",
+        "Added Contact module for public contact submissions and admin review with role guard",
+        "Added Stats module providing dashboard metrics, sales trend data, and top product analytics",
+        "Updated Orders module to award reward points when orders are marked as paid",
+        "Configured global /api prefix and relocated Swagger UI to /api/docs",
+        "Extended .env.example with JWT secrets and expiration settings"
+      ],
+      "files": [
+        "src/auth/**/*",
+        "src/users/**/*",
+        "src/rewards/**/*",
+        "src/contact/**/*",
+        "src/stats/**/*",
+        "src/orders/orders.controller.ts",
+        "src/orders/orders.service.ts",
+        "src/main.ts",
+        "src/app.module.ts",
+        ".env.example",
+        "package.json"
+      ]
+    },
     {
       "change": "Foreign Key Relationships with @JoinColumn",
       "date": "2025-10-25",
@@ -335,6 +537,23 @@
         "Facilitates onboarding and maintenance",
         "Created CONTEXT_SYSTEM_GUIDE.md for AI agents"
       ]
+    },
+    {
+      "change": "File Upload Module",
+      "date": "2025-10-25",
+      "description": "Added secure file upload module for product images with comprehensive validation and database tracking",
+      "impact": [
+        "Created Upload module at src/upload/ with controller, service, entity",
+        "Added FileUpload entity to track all uploaded files",
+        "Implemented 4 endpoints: POST /upload/image, GET /upload/images, GET /upload/image/:id, DELETE /upload/image/:id",
+        "Added security features: file extension validation, MIME type validation, file size limit (5MB), filename sanitization",
+        "Configured static file serving from uploads/ directory",
+        "Added Multer configuration for file handling",
+        "Created FILE_UPLOAD_INTEGRATION_GUIDE.md for Frontend integration",
+        "Updated Swagger documentation with upload tag",
+        "Installed @types/multer dev dependency",
+        "Created context/upload.json for module documentation"
+      ]
     }
   ],
 
@@ -346,7 +565,13 @@
       "context/category.json",
       "context/product.json",
       "context/order.json",
-      "context/revenue.json"
+      "context/revenue.json",
+      "context/upload.json",
+      "context/auth.json",
+      "context/users.json",
+      "context/rewards.json",
+      "context/contact.json",
+      "context/stats.json"
     ],
     "usage": "AI agents should read main.json first, then consult module-specific context files. See CONTEXT_SYSTEM_GUIDE.md for detailed instructions on maintaining context files.",
     "updateGuidelines": "When making changes to entities, DTOs, endpoints, or business rules, update the corresponding context file(s). Add architectural changes to recentArchitecturalChanges array."
@@ -355,20 +580,22 @@
   "keyFeatures": [
     "Complete CRUD operations for categories and products",
     "Order management with lifecycle (pending_payment → paid/cancelled)",
+    "Authenticated customer flows with JWT access/refresh tokens",
+    "Reward point accrual on paid orders and redemption handling",
     "Soft delete for products (preserves data)",
     "Revenue reporting with daily and range-based analytics",
-    "Payment method breakdown (cash/bank transfer)",
-    "Customer purchase pattern tracking",
-    "Automatic database synchronization",
-    "Environment-based configuration",
+    "Dashboard statistics for admin panels (sales trends, top products)",
+    "Secure file upload for product images with validation",
+    "Contact form capture with staff moderation",
+    "Environment-based configuration and JWT expiry customization",
     "Comprehensive API documentation with Swagger",
     "Input validation with class-validator",
     "Audit trail support (createdBy/updatedBy)",
     "PostgreSQL database with TypeORM"
   ],
 
-  "totalEndpoints": 17,
+  "totalEndpoints": 37,
   "buildStatus": "Success",
-  "lastUpdated": "2025-10-25"
+  "lastUpdated": "2025-10-31"
 }
 

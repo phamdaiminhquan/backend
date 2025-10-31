@@ -1,0 +1,56 @@
+{
+  "moduleName": "Users",
+  "path": "src/users",
+  "purpose": "Provide persistence and helper methods for user accounts, reward balances, and refresh tokens",
+  "entity": {
+    "name": "User",
+    "path": "src/users/entities/user.entity.ts",
+    "extends": "BaseEntity",
+    "fields": [
+      { "name": "id", "type": "number", "description": "Primary key" },
+      { "name": "email", "type": "string", "description": "Unique email address", "decorator": "@Column({ unique: true, length: 255 })" },
+      { "name": "passwordHash", "type": "string", "description": "Bcrypt hashed password", "decorator": "@Column({ length: 255 })" },
+      { "name": "fullName", "type": "string", "description": "Full name", "decorator": "@Column({ length: 255 })" },
+      { "name": "phone", "type": "string", "description": "Optional phone", "decorator": "@Column({ length: 20, nullable: true })", "required": false },
+      { "name": "role", "type": "UserRole", "description": "User role (admin/staff/customer)", "decorator": "@Column({ enum: UserRole, default: UserRole.CUSTOMER })", "default": "customer" },
+      { "name": "rewardPoints", "type": "number", "description": "Current reward point balance", "decorator": "@Column({ type: 'int', default: 0 })", "default": 0 },
+      { "name": "refreshTokenHash", "type": "string", "description": "Hashed refresh token", "decorator": "@Column({ length: 255, nullable: true })", "required": false },
+      { "name": "rewardTransactions", "type": "RewardTransaction[]", "description": "Reward history relationship", "decorator": "@OneToMany(() => RewardTransaction, (transaction) => transaction.user)" },
+      { "name": "contactMessages", "type": "ContactMessage[]", "description": "Contact messages relationship", "decorator": "@OneToMany(() => ContactMessage, (message) => message.user)" }
+    ]
+  },
+  "services": {
+    "usersService": {
+      "path": "src/users/users.service.ts",
+      "methods": [
+        "create(params): Creates a user with normalized lowercase email",
+        "findByEmail(email): Returns user or null",
+        "findById(id): Returns user or null",
+        "mustFindById(id): Throws NotFoundException if missing",
+        "updateProfile(id, changes): Updates name/phone/password hash",
+        "updateRefreshTokenHash(id, hash): Persists refresh token hash (nullable)",
+        "setRewardPoints(id, points): Sets absolute reward point balance",
+        "adjustRewardPoints(id, delta): Adds delta (auto clamps to ≥0)"
+      ]
+    }
+  },
+  "enums": {
+    "UserRole": {
+      "path": "src/enums/user.enum.ts",
+      "values": ["ADMIN", "STAFF", "CUSTOMER"]
+    }
+  },
+  "businessRules": [
+    "Emails are stored in lowercase and must remain unique",
+    "Reward point balance cannot drop below zero",
+    "Refresh token hashes are nullable and cleared on logout",
+    "User entity relationships provide cascade access for rewards and contact messages"
+  ],
+  "dependencies": [],
+  "usedBy": ["Auth Module", "Rewards Module", "Contact Module", "Orders Module", "Stats Module"],
+  "files": {
+    "entity": "src/users/entities/user.entity.ts",
+    "service": "src/users/users.service.ts",
+    "module": "src/users/users.module.ts"
+  }
+}

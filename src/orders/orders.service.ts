@@ -3,10 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order } from './entities/order.entity';
 import { OrderDetail } from './entities/order-detail.entity';
-import { OrderStatus } from '../enums/order.enum';
+import { OrderStatus, PaymentMethod } from '../enums/order.enum';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { ProductsService } from '../products/products.service';
+import { RewardsService } from '../rewards/rewards.service';
 
 @Injectable()
 export class OrdersService {
@@ -15,7 +16,8 @@ export class OrdersService {
     private ordersRepository: Repository<Order>,
     @InjectRepository(OrderDetail)
     private orderDetailsRepository: Repository<OrderDetail>,
-    private productsService: ProductsService,
+  private productsService: ProductsService,
+  private rewardsService: RewardsService,
   ) {}
 
   async create(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -31,7 +33,7 @@ export class OrdersService {
     const order = this.ordersRepository.create({
       customerName: createOrderDto.customerName || 'Khách vãng lai',
       userId: createOrderDto.userId,
-      paymentMethod: createOrderDto.paymentMethod,
+      paymentMethod: createOrderDto.paymentMethod ?? PaymentMethod.CASH,
     });
 
     const savedOrder = await this.ordersRepository.save(order);
@@ -52,13 +54,24 @@ export class OrdersService {
     return this.findOne(savedOrder.id);
   }
 
-  async findAll(customerName?: string): Promise<Order[]> {
-    const query = this.ordersRepository.createQueryBuilder('order')
+  async findAll(options?: { customerName?: string; userId?: number }): Promise<Order[]> {
+    const query = this.ordersRepository
+      .createQueryBuilder('order')
       .leftJoinAndSelect('order.orderDetails', 'orderDetails')
       .leftJoinAndSelect('orderDetails.product', 'product');
 
-    if (customerName) {
-      query.where('order.customerName LIKE :customerName', { customerName: `%${customerName}%` });
+    if (options?.customerName) {
+      query.where('order.customerName LIKE :customerName', {
+        customerName: `%${options.customerName}%`,
+      });
+    }
+
+    if (options?.userId) {
+      if (options.customerName) {
+        query.andWhere('order.userId = :userId', { userId: options.userId });
+      } else {
+        query.where('order.userId = :userId', { userId: options.userId });
+      }
     }
 
     return query.orderBy('order.createdAt', 'DESC').getMany();
@@ -82,8 +95,29 @@ export class OrdersService {
       throw new BadRequestException('Cancellation reason is required when cancelling an order');
     }
 
+    const previousStatus = order.status;
+
     await this.ordersRepository.update(id, updateOrderDto);
-    return this.findOne(id);
+    const updatedOrder = await this.findOne(id);
+
+    if (
+      updateOrderDto.status === OrderStatus.PAID &&
+      previousStatus !== OrderStatus.PAID &&
+      updatedOrder.userId
+    ) {
+      const orderTotal = updatedOrder.orderDetails.reduce((sum, detail) => sum + Number(detail.subtotal), 0);
+  // Simple loyalty conversion: ~1 point per 1,000 currency units spent
+  const earnedPoints = Math.floor(orderTotal / 1000);
+
+      if (earnedPoints > 0) {
+        await this.rewardsService.earnPoints(updatedOrder.userId, earnedPoints, {
+          orderId: updatedOrder.id,
+          total: orderTotal,
+        });
+      }
+    }
+
+    return updatedOrder;
   }
 
   async remove(id: number): Promise<void> {

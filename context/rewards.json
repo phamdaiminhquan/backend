@@ -1,0 +1,98 @@
+{
+  "moduleName": "Rewards",
+  "path": "src/rewards",
+  "purpose": "Manage reward point balances, history, and redemption workflows",
+  "entity": {
+    "name": "RewardTransaction",
+    "path": "src/rewards/entities/reward-transaction.entity.ts",
+    "extends": "BaseEntity",
+    "fields": [
+      { "name": "id", "type": "number", "description": "Primary key" },
+      { "name": "userId", "type": "number", "description": "Foreign key to User", "decorator": "@Column({ type: 'int' })", "required": true },
+      { "name": "user", "type": "User", "description": "User relationship", "decorator": "@ManyToOne(() => User, (user) => user.rewardTransactions, { onDelete: 'CASCADE' })", "joinColumn": "@JoinColumn({ name: 'userId' })", "relationshipType": "ManyToOne" },
+      { "name": "type", "type": "RewardTransactionType", "description": "earn or redeem", "decorator": "@Column({ enum: RewardTransactionType })" },
+      { "name": "points", "type": "number", "description": "Point delta", "decorator": "@Column({ type: 'int' })" },
+      { "name": "balanceAfter", "type": "number", "description": "Balance after transaction", "decorator": "@Column({ type: 'int' })" },
+      { "name": "description", "type": "string", "description": "Human readable description", "decorator": "@Column({ length: 255, nullable: true })", "required": false }
+    ]
+  },
+  "enums": {
+    "RewardTransactionType": {
+      "path": "src/enums/reward.enum.ts",
+      "values": ["EARN", "REDEEM"]
+    }
+  },
+  "dtos": {
+    "redeem": {
+      "path": "src/rewards/dto/redeem-reward.dto.ts",
+      "fields": [
+        { "name": "points", "type": "number", "validators": ["@IsInt()", "@Min(1)"] },
+        { "name": "offerId", "type": "string", "validators": ["@IsOptional()", "@IsString()"], "required": false },
+        { "name": "description", "type": "string", "validators": ["@IsOptional()", "@IsString()"], "required": false }
+      ]
+    }
+  },
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/rewards/points",
+      "description": "Get current reward points of logged-in user",
+      "responseBody": "{ points: number }",
+      "statusCode": 200,
+      "security": ["Bearer"]
+    },
+    {
+      "method": "GET",
+      "path": "/rewards/history",
+      "description": "List reward transactions (most recent first)",
+      "responseBody": "RewardTransaction[]",
+      "statusCode": 200,
+      "security": ["Bearer"]
+    },
+    {
+      "method": "POST",
+      "path": "/rewards/redeem",
+      "description": "Redeem points for an offer",
+      "requestBody": "RedeemRewardDto",
+      "responseBody": "{ points: number }",
+      "statusCode": 200,
+      "security": ["Bearer"],
+      "validation": ["User must have at least the requested points"]
+    },
+    {
+      "method": "GET",
+      "path": "/rewards/offers",
+      "description": "List available reward offers",
+      "responseBody": "Array<{ id: string; name: string; cost: number; description: string }>",
+      "statusCode": 200
+    }
+  ],
+  "services": {
+    "rewardsService": {
+      "path": "src/rewards/rewards.service.ts",
+      "methods": [
+        "getPoints(userId): returns current balance",
+        "getHistory(userId): returns transactions ordered desc",
+        "earnPoints(userId, points, metadata): increases balance and records earn transaction",
+        "redeem(userId, dto): validates balance, subtracts points, records redeem transaction",
+        "getAvailableOffers(): returns static offer catalog"
+      ]
+    }
+  },
+  "businessRules": [
+    "Users must be authenticated to view balance/history or redeem",
+    "Redeem validation prevents balance from dropping below zero",
+    "Paid orders call earnPoints with 1 point per 1,000 currency units",
+    "Transactions store balanceAfter to support auditing",
+    "Offers are currently static but served via dedicated endpoint"
+  ],
+  "dependencies": ["Users Module"],
+  "usedBy": ["Orders Module"],
+  "files": {
+    "controller": "src/rewards/rewards.controller.ts",
+    "service": "src/rewards/rewards.service.ts",
+    "module": "src/rewards/rewards.module.ts",
+    "entity": "src/rewards/entities/reward-transaction.entity.ts",
+    "dto": "src/rewards/dto/redeem-reward.dto.ts"
+  }
+}
