@@ -11,7 +11,6 @@ import { UsersModule } from './users/users.module';
 import { RewardsModule } from './rewards/rewards.module';
 import { ContactModule } from './contact/contact.module';
 import { StatsModule } from './stats/stats.module';
-import { ReviewsModule } from './reviews/reviews.module';
 import { Category } from './categories/entities/category.entity';
 import { Product } from './products/entities/product.entity';
 import { Order } from './orders/entities/order.entity';
@@ -23,36 +22,60 @@ import { ContactMessage } from './contact/entities/contact-message.entity';
 import { CustomersModule } from './customers/customers.module';
 import { Customer } from './customers/entities/customer.entity';
 import { Review } from './reviews/entities/review.entity';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
+    // Đọc file .env (isGlobal giúp dùng ở mọi module)
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
     }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || 'Heimerdinger123',
-      database: process.env.DB_NAME || 'coffee_shop',
-      entities: [
-        Category,
-        Product,
-        Order,
-        OrderDetail,
-        FileUpload,
-        User,
-        Customer,
-        Review,
-        RewardTransaction,
-        ContactMessage,
-      ],
-      synchronize: true,
-      // synchronize: process.env.NODE_ENV !== 'production',
-      // logging: process.env.NODE_ENV === 'development',
+
+    // Kết nối DB linh hoạt cho local & production
+    TypeOrmModule.forRootAsync({
+      useFactory: () => {
+        const isProd = process.env.NODE_ENV === 'production';
+        const baseConfig = {
+          type: 'postgres' as const,
+          entities: [
+            Category,
+            Product,
+            Order,
+            OrderDetail,
+            FileUpload,
+            User,
+            Customer,
+            Review,
+            RewardTransaction,
+            ContactMessage,
+          ],
+          autoLoadEntities: true,
+          synchronize: !isProd, // tránh sync tự động ở production
+        };
+
+        // Nếu có DATABASE_URL (Neon, Render, Supabase...)
+        if (process.env.DATABASE_URL) {
+          return {
+            ...baseConfig,
+            url: process.env.DATABASE_URL,
+            ssl: { rejectUnauthorized: false }, // Neon yêu cầu SSL
+          };
+        }
+
+        // Ngược lại, dùng cấu hình local
+        return {
+          ...baseConfig,
+          host: process.env.DB_HOST || 'localhost',
+          port: parseInt(process.env.DB_PORT || '5432', 10),
+          username: process.env.DB_USERNAME || 'postgres',
+          password: process.env.DB_PASSWORD || '',
+          database: process.env.DB_NAME || 'coffee_shop',
+        };
+      },
     }),
+
+    // Các module còn lại
     CategoriesModule,
     ProductsModule,
     OrdersModule,
@@ -67,4 +90,4 @@ import { Review } from './reviews/entities/review.entity';
     ReviewsModule,
   ],
 })
-export class AppModule { }
+export class AppModule {}
