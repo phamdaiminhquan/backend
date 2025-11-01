@@ -8,6 +8,16 @@ import { join } from 'path';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: true });
 
+  // CORS: whitelist FE dev & FE prod
+  app.enableCors({
+    origin: [
+      'http://localhost:5173',
+    ],
+    methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+    allowedHeaders: ['Content-Type','Authorization'],
+    credentials: true, // nếu có dùng cookie; nếu chỉ Bearer token vẫn để true cũng ok
+  });
+
   // Serve static files from uploads directory
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
@@ -49,10 +59,15 @@ async function bootstrap() {
     customCss: '.swagger-ui .topbar { display: none }',
   });
 
-  app.listen(3000, '0.0.0.0', () => {
-    console.log('Server running on port 3000');
+ // Quan trọng: dùng PORT của Vercel, KHÔNG hardcode 3000
+  const port = Number(process.env.PORT) || 3000;
+  await app.listen(port, '0.0.0.0');
+
+  console.log('[BOOT]', {
+    NODE_ENV: process.env.NODE_ENV,
+    AUTH_DISABLED: process.env.AUTH_DISABLED,
+    PORT: port,
   });
-  console.log(`Application is running on: http://localhost:${process.env.PORT ?? 3000}`);
-  console.log(`Swagger documentation available at: http://localhost:${process.env.PORT ?? 3000}/api/docs`);
+  console.log(`Docs: /docs`);
 }
 bootstrap();
