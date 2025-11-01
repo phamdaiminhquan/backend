@@ -3,6 +3,7 @@ import { BaseEntity } from '../../common/entities/base.entity';
 import { UserRole } from '../../enums/user.enum';
 import { RewardTransaction } from '../../rewards/entities/reward-transaction.entity';
 import { ContactMessage } from '../../contact/entities/contact-message.entity';
+import { Review } from '../../reviews/entities/review.entity';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -33,4 +34,7 @@ export class User extends BaseEntity {
 
   @OneToMany(() => ContactMessage, (message) => message.user)
   contactMessages!: ContactMessage[];
+
+  @OneToMany(() => Review, (review) => review.user)
+  reviews!: Review[];
 }

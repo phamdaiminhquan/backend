@@ -1,0 +1,182 @@
+{
+  "moduleName": "Reviews",
+  "path": "src/reviews",
+  "purpose": "Allow administrators to curate customer reviews and expose a public feed for the storefront website",
+  "entity": {
+    "name": "Review",
+    "path": "src/reviews/entities/review.entity.ts",
+    "extends": "BaseEntity",
+    "table": "reviews",
+    "fields": [
+      { "name": "id", "type": "number", "description": "Primary key" },
+      { "name": "userId", "type": "number | null", "description": "Optional reference to a registered user", "nullable": true },
+      { "name": "customerId", "type": "number | null", "description": "Optional reference to a guest customer", "nullable": true },
+      { "name": "comment", "type": "string", "description": "Review text content" },
+      { "name": "rating", "type": "number", "description": "Star rating stored as decimal with one decimal place" },
+      { "name": "images", "type": "string[] | null", "description": "Array of image URLs", "nullable": true },
+      { "name": "createdAt", "type": "Date", "description": "Creation timestamp" },
+      { "name": "updatedAt", "type": "Date", "description": "Last update timestamp" },
+      { "name": "createdBy", "type": "number | null", "description": "Admin user ID who created the review", "nullable": true },
+      { "name": "updatedBy", "type": "number | null", "description": "Admin user ID who last updated the review", "nullable": true },
+      { "name": "deletedAt", "type": "Date | null", "description": "Soft delete timestamp", "nullable": true }
+    ],
+    "relationships": [
+      { "type": "ManyToOne", "target": "User", "property": "user", "foreignKey": "userId", "onDelete": "SET NULL" },
+      { "type": "ManyToOne", "target": "Customer", "property": "customer", "foreignKey": "customerId", "onDelete": "SET NULL" }
+    ]
+  },
+  "dtos": {
+    "CreateReviewDto": {
+      "path": "src/reviews/dto/create-review.dto.ts",
+      "fields": [
+        { "name": "userId", "type": "number", "optional": true },
+        { "name": "customerId", "type": "number", "optional": true },
+        { "name": "comment", "type": "string", "minLength": 10 },
+        { "name": "rating", "type": "number", "allowedValues": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0] },
+        { "name": "images", "type": "string[]", "optional": true }
+      ]
+    },
+    "UpdateReviewDto": {
+      "path": "src/reviews/dto/update-review.dto.ts",
+      "extends": "Partial<CreateReviewDto>"
+    },
+    "ReviewResponseDto": {
+      "path": "src/reviews/dto/review-response.dto.ts",
+      "fields": [
+        { "name": "id", "type": "number" },
+        { "name": "comment", "type": "string" },
+        { "name": "rating", "type": "number" },
+        { "name": "images", "type": "string[]" },
+        { "name": "userId", "type": "number | null" },
+        { "name": "customerId", "type": "number | null" },
+        { "name": "authorType", "type": "'user' | 'customer' | null" },
+        { "name": "authorName", "type": "string | null" },
+        { "name": "createdAt", "type": "Date" },
+        { "name": "updatedAt", "type": "Date" },
+        { "name": "deletedAt", "type": "Date | null" }
+      ]
+    },
+    "PaginatedReviewResponseDto": {
+      "path": "src/reviews/dto/paginated-review-response.dto.ts",
+      "fields": [
+        { "name": "data", "type": "ReviewResponseDto[]" },
+        { "name": "page", "type": "number" },
+        { "name": "limit", "type": "number" },
+        { "name": "total", "type": "number" }
+      ]
+    }
+  },
+  "controllers": {
+    "admin": {
+      "name": "AdminReviewsController",
+      "path": "src/reviews/admin-reviews.controller.ts",
+      "basePath": "/api/admin/reviews",
+      "guards": ["JwtAuthGuard", "RolesGuard (ADMIN)"]
+    },
+    "public": {
+      "name": "PublicReviewsController",
+      "path": "src/reviews/public-reviews.controller.ts",
+      "basePath": "/api/reviews"
+    }
+  },
+  "service": {
+    "name": "ReviewsService",
+    "path": "src/reviews/reviews.service.ts",
+    "methods": [
+      "create(dto, adminId): Validates author and rating, persists review",
+      "adminList(options): Returns paginated, filterable admin list",
+      "findOne(id, includeDeleted): Loads review with relations",
+      "update(id, dto, adminId): Applies partial updates with validation",
+      "softDelete(id, adminId): Performs soft delete and audit tracking",
+      "publicList(options): Returns paginated public review feed"
+    ]
+  },
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/admin/reviews",
+      "scope": "admin",
+      "description": "Create a new review on behalf of a customer or user",
+      "requestBody": "CreateReviewDto",
+      "requiresAuth": true,
+      "roles": ["ADMIN"],
+      "responses": { "201": "ReviewResponseDto" }
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/reviews",
+      "scope": "admin",
+      "description": "Paginated review list with filters and search",
+      "queryParameters": ["page", "limit", "search", "rating", "minRating", "maxRating", "userId", "customerId", "sort", "includeDeleted"],
+      "requiresAuth": true,
+      "roles": ["ADMIN"],
+      "responses": { "200": "PaginatedReviewResponseDto" }
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/reviews/{id}",
+      "scope": "admin",
+      "description": "Fetch review details by ID",
+      "queryParameters": ["includeDeleted"],
+      "requiresAuth": true,
+      "roles": ["ADMIN"],
+      "responses": { "200": "ReviewResponseDto", "404": "NotFound" }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/reviews/{id}",
+      "scope": "admin",
+      "description": "Update review content or author linkage",
+      "requestBody": "UpdateReviewDto",
+      "requiresAuth": true,
+      "roles": ["ADMIN"],
+      "responses": { "200": "ReviewResponseDto", "404": "NotFound" }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/admin/reviews/{id}",
+      "scope": "admin",
+      "description": "Soft delete a review",
+      "requiresAuth": true,
+      "roles": ["ADMIN"],
+      "responses": { "204": "NoContent" }
+    },
+    {
+      "method": "GET",
+      "path": "/api/reviews",
+      "scope": "public",
+      "description": "Public listing of published reviews",
+      "queryParameters": ["page", "limit", "sort", "minRating", "maxRating"],
+      "responses": { "200": "PaginatedReviewResponseDto" }
+    }
+  ],
+  "validationRules": [
+    "Exactly one of userId or customerId must be provided",
+    "Rating must be between 0.5 and 5.0 in 0.5 increments",
+    "Comment must have a minimum length of 10 characters",
+    "Images must be valid URLs when provided",
+    "Referenced user or customer must exist and not be soft-deleted"
+  ],
+  "businessLogic": {
+    "authorValidation": "Ensures mutual exclusivity between registered user and guest customer authors",
+    "ratingValidation": "Uses shared utility to verify decimal increments",
+    "publicFeed": "Filters out soft-deleted reviews and supports configurable sorting",
+    "audit": "Tracks createdBy and updatedBy for admin accountability",
+    "softDelete": "Sets deletedAt while retaining record for history"
+  },
+  "dependencies": ["Users Module", "Customers Module", "Auth Module"],
+  "usedBy": ["Customer-facing website"],
+  "files": {
+    "module": "src/reviews/reviews.module.ts",
+    "service": "src/reviews/reviews.service.ts",
+    "adminController": "src/reviews/admin-reviews.controller.ts",
+    "publicController": "src/reviews/public-reviews.controller.ts",
+    "entity": "src/reviews/entities/review.entity.ts",
+    "dtos": [
+      "src/reviews/dto/create-review.dto.ts",
+      "src/reviews/dto/update-review.dto.ts",
+      "src/reviews/dto/review-response.dto.ts",
+      "src/reviews/dto/paginated-review-response.dto.ts"
+    ]
+  }
+}

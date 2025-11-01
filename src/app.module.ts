@@ -11,6 +11,7 @@ import { UsersModule } from './users/users.module';
 import { RewardsModule } from './rewards/rewards.module';
 import { ContactModule } from './contact/contact.module';
 import { StatsModule } from './stats/stats.module';
+import { ReviewsModule } from './reviews/reviews.module';
 import { Category } from './categories/entities/category.entity';
 import { Product } from './products/entities/product.entity';
 import { Order } from './orders/entities/order.entity';
@@ -21,6 +22,7 @@ import { RewardTransaction } from './rewards/entities/reward-transaction.entity'
 import { ContactMessage } from './contact/entities/contact-message.entity';
 import { CustomersModule } from './customers/customers.module';
 import { Customer } from './customers/entities/customer.entity';
+import { Review } from './reviews/entities/review.entity';
 
 @Module({
   imports: [
@@ -43,6 +45,7 @@ import { Customer } from './customers/entities/customer.entity';
         FileUpload,
         User,
         Customer,
+        Review,
         RewardTransaction,
         ContactMessage,
       ],
@@ -61,6 +64,7 @@ import { Customer } from './customers/entities/customer.entity';
     RewardsModule,
     ContactModule,
     StatsModule,
+    ReviewsModule,
   ],
 })
 export class AppModule { }

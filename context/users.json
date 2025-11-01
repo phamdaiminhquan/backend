@@ -16,7 +16,8 @@
       { "name": "rewardPoints", "type": "number", "description": "Current reward point balance", "decorator": "@Column({ type: 'int', default: 0 })", "default": 0 },
       { "name": "refreshTokenHash", "type": "string", "description": "Hashed refresh token", "decorator": "@Column({ length: 255, nullable: true })", "required": false },
       { "name": "rewardTransactions", "type": "RewardTransaction[]", "description": "Reward history relationship", "decorator": "@OneToMany(() => RewardTransaction, (transaction) => transaction.user)" },
-      { "name": "contactMessages", "type": "ContactMessage[]", "description": "Contact messages relationship", "decorator": "@OneToMany(() => ContactMessage, (message) => message.user)" }
+  { "name": "contactMessages", "type": "ContactMessage[]", "description": "Contact messages relationship", "decorator": "@OneToMany(() => ContactMessage, (message) => message.user)" },
+  { "name": "reviews", "type": "Review[]", "description": "Customer reviews authored by the user", "decorator": "@OneToMany(() => Review, (review) => review.user)" }
     ]
   },
   "services": {
@@ -47,7 +48,7 @@
     "User entity relationships provide cascade access for rewards and contact messages"
   ],
   "dependencies": [],
-  "usedBy": ["Auth Module", "Rewards Module", "Contact Module", "Orders Module", "Stats Module"],
+  "usedBy": ["Auth Module", "Rewards Module", "Contact Module", "Orders Module", "Stats Module", "Reviews Module"],
   "files": {
     "entity": "src/users/entities/user.entity.ts",
     "service": "src/users/users.service.ts",

@@ -61,6 +61,11 @@
             "type": "OneToMany",
             "target": "ContactMessage",
             "property": "contactMessages"
+          },
+          {
+            "type": "OneToMany",
+            "target": "Review",
+            "property": "reviews"
           }
         ]
       },
@@ -128,6 +133,13 @@
         "purpose": "Collect customer contact messages and expose admin review endpoints",
         "endpoints": 2,
         "contextFile": "context/contact.json"
+      },
+      {
+        "name": "Reviews",
+        "path": "src/reviews",
+        "purpose": "Manage customer reviews with admin curation and public listing",
+        "endpoints": 6,
+        "contextFile": "context/reviews.json"
       },
       {
         "name": "Stats",
@@ -285,6 +297,29 @@
             "nullable": true
           }
         ]
+      },
+      {
+        "name": "Review",
+        "table": "reviews",
+        "fields": ["id", "userId", "customerId", "comment", "rating", "images", "createdAt", "updatedAt", "createdBy", "updatedBy", "deletedAt"],
+        "relationships": [
+          {
+            "type": "ManyToOne",
+            "target": "User",
+            "foreignKey": "userId",
+            "joinColumn": "@JoinColumn({ name: 'userId' })",
+            "nullable": true,
+            "onDelete": "SET NULL"
+          },
+          {
+            "type": "ManyToOne",
+            "target": "Customer",
+            "foreignKey": "customerId",
+            "joinColumn": "@JoinColumn({ name: 'customerId' })",
+            "nullable": true,
+            "onDelete": "SET NULL"
+          }
+        ]
       }
     ],
     "relationshipSummary": {
@@ -293,7 +328,9 @@
       "OrderDetail → Order": "ManyToOne with cascade delete (each order detail belongs to one order)",
       "OrderDetail → Product": "ManyToOne with eager loading (each order detail references one product)",
       "RewardTransaction → User": "ManyToOne (reward transactions belong to a user)",
-      "ContactMessage → User": "ManyToOne nullable (contact messages optionally link to a user)"
+      "ContactMessage → User": "ManyToOne nullable (contact messages optionally link to a user)",
+      "Review → User": "ManyToOne nullable (reviews optionally link to a registered user)",
+      "Review → Customer": "ManyToOne nullable (reviews optionally link to a guest customer)"
     },
     "synchronization": "Enabled in non-production environments"
   },

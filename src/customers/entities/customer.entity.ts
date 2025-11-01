@@ -1,5 +1,6 @@
-import { Entity, Column } from 'typeorm';
+import { Column, Entity, OneToMany } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
+import { Review } from '../../reviews/entities/review.entity';
 
 @Entity('customers')
 export class Customer extends BaseEntity {
@@ -15,5 +16,8 @@ export class Customer extends BaseEntity {
 
   @Column({ type: 'int', default: 0 })
   rewardPoints!: number;
+  
+  @OneToMany(() => Review, (review) => review.customer)
+  reviews!: Review[];
 }
 

@@ -13,8 +13,6 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
-  // app.setGlobalPrefix('api');
-
   // Enable validation globally
   app.useGlobalPipes(
     new ValidationPipe({
@@ -41,6 +39,8 @@ async function bootstrap() {
     .addTag('rewards', 'Reward points management endpoints')
     .addTag('contact', 'Contact and feedback endpoints')
     .addTag('stats', 'Dashboard statistics endpoints')
+    .addTag('reviews', 'Public customer review endpoints')
+    .addTag('admin/reviews', 'Admin review management endpoints')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -49,7 +49,9 @@ async function bootstrap() {
     customCss: '.swagger-ui .topbar { display: none }',
   });
 
-  await app.listen(process.env.PORT ?? 3000);
+  app.listen(3000, '0.0.0.0', () => {
+    console.log('Server running on port 3000');
+  });
   console.log(`Application is running on: http://localhost:${process.env.PORT ?? 3000}`);
   console.log(`Swagger documentation available at: http://localhost:${process.env.PORT ?? 3000}/api/docs`);
 }
