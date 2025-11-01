@@ -1,16 +1,19 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RewardTransaction } from './entities/reward-transaction.entity';
 import { UsersService } from '../users/users.service';
 import { RedeemRewardDto } from './dto/redeem-reward.dto';
 import { RewardTransactionType } from '../enums/reward.enum';
+import { Customer } from '../customers/entities/customer.entity';
 
 @Injectable()
 export class RewardsService {
   constructor(
     @InjectRepository(RewardTransaction)
     private readonly rewardTransactionRepository: Repository<RewardTransaction>,
+    @InjectRepository(Customer)
+    private readonly customersRepository: Repository<Customer>,
     private readonly usersService: UsersService,
   ) {}
 
@@ -56,6 +59,52 @@ export class RewardsService {
     await this.rewardTransactionRepository.save(transaction);
     return { points: user.rewardPoints };
   }
+
+
+  // ----- Customer (guest) rewards support -----
+  async getCustomerPoints(customerId: number): Promise<{ points: number }> {
+    const customer = await this.customersRepository.findOne({ where: { id: customerId } });
+    if (!customer) throw new NotFoundException('Customer not found');
+    return { points: customer.rewardPoints };
+  }
+
+  async getCustomerHistory(customerId: number): Promise<RewardTransaction[]> {
+    const customer = await this.customersRepository.findOne({ where: { id: customerId } });
+    if (!customer) throw new NotFoundException('Customer not found');
+    return this.rewardTransactionRepository.find({ where: { customerId }, order: { createdAt: 'DESC' } });
+  }
+
+  async earnPointsForCustomer(
+    customerId: number,
+    points: number,
+    metadata?: { orderId?: number; total?: number; description?: string },
+  ): Promise<{ points: number }> {
+    const customer = await this.customersRepository.findOne({ where: { id: customerId } });
+    if (!customer) throw new NotFoundException('Customer not found');
+
+    if (points <= 0) {
+      return { points: customer.rewardPoints };
+    }
+
+    customer.rewardPoints += points;
+    await this.customersRepository.save(customer);
+
+    const description =
+      metadata?.description ??
+      (metadata?.orderId ? `Earned ${points} points from order #${metadata.orderId}` : `Earned ${points} reward points`);
+
+    const transaction = this.rewardTransactionRepository.create({
+      customerId: customer.id,
+      type: RewardTransactionType.EARN,
+      points,
+      balanceAfter: customer.rewardPoints,
+      description,
+    });
+    await this.rewardTransactionRepository.save(transaction);
+
+    return { points: customer.rewardPoints };
+  }
+
 
   async redeem(userId: number, dto: RedeemRewardDto): Promise<{ points: number }> {
     const user = await this.usersService.mustFindById(userId);

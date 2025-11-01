@@ -20,6 +20,10 @@ export class Product extends BaseEntity {
   @Column({ type: 'enum', enum: ProductStatus, default: ProductStatus.ACTIVE })
   status: ProductStatus;
 
+  @Column({ type: 'int', default: 0 })
+  salesCount: number;
+
+
   @Column({ type: 'int' })
   categoryId: number;
 

@@ -1,8 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UserRole } from '../enums/user.enum';
+import { Customer } from '../customers/entities/customer.entity';
+import { Order } from '../orders/entities/order.entity';
+import { RewardTransaction } from '../rewards/entities/reward-transaction.entity';
 
 interface CreateUserParams {
   email: string;
@@ -23,18 +26,75 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    @InjectRepository(Customer)
+    private readonly customersRepository: Repository<Customer>,
   ) {}
 
   async create(params: CreateUserParams): Promise<User> {
+    const normalizedPhone = params.phone?.trim();
+
+    // Pre-check for existing customer with same phone (active)
+    let existingCustomer: Customer | null = null;
+    if (normalizedPhone) {
+      existingCustomer = await this.customersRepository.findOne({ where: { phoneNumber: normalizedPhone, deletedAt: IsNull() } });
+
+      // Enforce phone uniqueness across users as well
+      const existingUser = await this.usersRepository.findOne({ where: { phone: normalizedPhone } });
+      if (existingUser) {
+        throw new BadRequestException('Phone number already exists for a registered user');
+      }
+    }
+
     const user = this.usersRepository.create({
       email: params.email.toLowerCase(),
       passwordHash: params.passwordHash,
       fullName: params.fullName,
-      phone: params.phone,
+      phone: normalizedPhone,
       role: params.role ?? UserRole.CUSTOMER,
     });
 
-    return this.usersRepository.save(user);
+    const savedUser = await this.usersRepository.save(user);
+
+    // Auto-migrate data if there is a matching customer by phone
+    if (existingCustomer) {
+      await this.usersRepository.manager.transaction(async (manager) => {
+        const ordersRepo = manager.getRepository(Order);
+        const usersRepo = manager.getRepository(User);
+        const customersRepo = manager.getRepository(Customer);
+        const rewardRepo = manager.getRepository(RewardTransaction);
+
+        // Transfer orders: set userId and clear customerId
+        await ordersRepo
+          .createQueryBuilder()
+          .update()
+          .set({ userId: savedUser.id, customerId: null as any })
+          .where('customerId = :cid', { cid: existingCustomer!.id })
+          .execute();
+
+        // Transfer reward points from customer to user
+        if (existingCustomer!.rewardPoints && existingCustomer!.rewardPoints > 0) {
+          const reloadedUser = await usersRepo.findOne({ where: { id: savedUser.id } });
+          if (reloadedUser) {
+            reloadedUser.rewardPoints += existingCustomer!.rewardPoints;
+            await usersRepo.save(reloadedUser);
+          }
+        }
+
+        // Move reward transactions to user
+        await rewardRepo
+          .createQueryBuilder()
+          .update()
+          .set({ userId: savedUser.id, customerId: null })
+          .where('customerId = :cid', { cid: existingCustomer!.id })
+          .execute();
+
+        // Soft-delete customer
+        existingCustomer!.deletedAt = new Date();
+        await customersRepo.save(existingCustomer!);
+      });
+    }
+
+    return savedUser;
   }
 
   findByEmail(email: string): Promise<User | null> {

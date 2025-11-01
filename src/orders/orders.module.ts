@@ -7,9 +7,10 @@ import { OrderDetail } from './entities/order-detail.entity';
 import { ProductsModule } from '../products/products.module';
 import { RewardsModule } from '../rewards/rewards.module';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { Customer } from '../customers/entities/customer.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, OrderDetail]), ProductsModule, RewardsModule],
+  imports: [TypeOrmModule.forFeature([Order, OrderDetail, Customer]), ProductsModule, RewardsModule],
   controllers: [OrdersController],
   providers: [OrdersService, RolesGuard],
   exports: [OrdersService],

@@ -1,7 +1,8 @@
-import { Entity, Column, OneToMany } from 'typeorm';
+import { Entity, Column, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { OrderDetail } from './order-detail.entity';
 import { OrderStatus, PaymentMethod } from '../../enums/order.enum';
 import { BaseEntity } from '../../common/entities/base.entity';
+import { Customer } from '../../customers/entities/customer.entity';
 
 @Entity('orders')
 export class Order extends BaseEntity {
@@ -10,6 +11,13 @@ export class Order extends BaseEntity {
 
   @Column({ type: 'int', nullable: true })
   userId: number;
+
+  @Column({ type: 'int', nullable: true })
+  customerId: number;
+
+  @ManyToOne(() => Customer, { nullable: true })
+  @JoinColumn({ name: 'customerId' })
+  customer?: Customer;
 
   @Column({ type: 'enum', enum: PaymentMethod, nullable: true })
   paymentMethod: PaymentMethod;

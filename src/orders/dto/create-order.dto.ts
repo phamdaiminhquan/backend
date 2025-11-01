@@ -41,12 +41,20 @@ export class CreateOrderDto {
   customerName?: string;
 
   @ApiPropertyOptional({
-    description: 'User ID who created the order',
+    description: 'User ID who placed the order (registered account) - mutually exclusive with customerId',
     example: 1,
   })
   @IsOptional()
   @IsNumber()
   userId?: number;
+
+  @ApiPropertyOptional({
+    description: 'Customer ID (guest customer) - mutually exclusive with userId',
+    example: 10,
+  })
+  @IsOptional()
+  @IsNumber()
+  customerId?: number;
 
   @ApiPropertyOptional({
     description: 'Payment method',

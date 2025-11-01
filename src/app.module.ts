@@ -19,6 +19,8 @@ import { FileUpload } from './upload/entities/file-upload.entity';
 import { User } from './users/entities/user.entity';
 import { RewardTransaction } from './rewards/entities/reward-transaction.entity';
 import { ContactMessage } from './contact/entities/contact-message.entity';
+import { CustomersModule } from './customers/customers.module';
+import { Customer } from './customers/entities/customer.entity';
 
 @Module({
   imports: [
@@ -40,6 +42,7 @@ import { ContactMessage } from './contact/entities/contact-message.entity';
         OrderDetail,
         FileUpload,
         User,
+        Customer,
         RewardTransaction,
         ContactMessage,
       ],
@@ -53,6 +56,7 @@ import { ContactMessage } from './contact/entities/contact-message.entity';
     RevenueModule,
     UploadModule,
     UsersModule,
+    CustomersModule,
     AuthModule,
     RewardsModule,
     ContactModule,
