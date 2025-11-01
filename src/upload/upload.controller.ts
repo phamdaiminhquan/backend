@@ -29,6 +29,7 @@ import { ListImagesQueryDto } from './dto/list-images-query.dto';
 import { ListImagesResponseDto } from './dto/list-images-response.dto';
 import { UpdateUploadDto } from './dto/update-upload.dto';
 import { multerConfig } from './config/multer.config';
+import type { Express } from 'express';
 
 @ApiTags('upload')
 @Controller('upload')

@@ -1,4 +1,5 @@
 import { diskStorage } from 'multer';
+import type { Express } from 'express';
 import { Request } from 'express';
 import * as path from 'path';
 import * as fs from 'fs';
