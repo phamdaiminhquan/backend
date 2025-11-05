@@ -23,6 +23,20 @@ export class Product extends BaseEntity {
   @Column({ type: 'int', default: 0 })
   salesCount: number;
 
+  @Column({ type: 'decimal', precision: 2, scale: 1, default: 0 })
+  rating: number;
+
+  @Column({ type: 'int', default: 0 })
+  reviewCount: number;
+
+  @Column({ type: 'int', default: 0 })
+  views: number;
+
+  @Column({ type: 'int', default: 0 })
+  clicks: number;
+
+  @Column({ type: 'int', default: 0 })
+  orders: number;
 
   @Column({ type: 'int' })
   categoryId: number;
