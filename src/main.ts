@@ -8,17 +8,17 @@ import { join } from 'path';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: true });
 
-  // CORS: whitelist FE dev & FE prod
+  // CORS
   app.enableCors({
     origin: [
       'http://localhost:5173',
     ],
     methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
     allowedHeaders: ['Content-Type','Authorization'],
-    credentials: true, // nếu có dùng cookie; nếu chỉ Bearer token vẫn để true cũng ok
+    credentials: true,
   });
 
-  // Serve static files from uploads directory
+  // Serve static files
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
   });
@@ -59,7 +59,6 @@ async function bootstrap() {
     customCss: '.swagger-ui .topbar { display: none }',
   });
 
- // Quan trọng: dùng PORT của Vercel, KHÔNG hardcode 3000
   const port = Number(process.env.PORT) || 3000;
   await app.listen(port, '0.0.0.0');
 
@@ -68,6 +67,6 @@ async function bootstrap() {
     AUTH_DISABLED: process.env.AUTH_DISABLED,
     PORT: port,
   });
-  console.log(`Docs: /docs`);
+  console.log(`[DOCS]`, `http://localhost:${port}/docs`);
 }
 bootstrap();

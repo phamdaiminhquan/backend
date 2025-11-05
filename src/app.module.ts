@@ -26,7 +26,6 @@ import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
-    // Đọc file .env (isGlobal giúp dùng ở mọi module)
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
