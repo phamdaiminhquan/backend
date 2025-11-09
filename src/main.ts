@@ -1,21 +1,41 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const logger = new Logger('Bootstrap');
 
   // CORS
+  const isProd = process.env.NODE_ENV === 'production';
+  let origin: boolean | string[];
+
+  if (isProd) {
+    if (!process.env.VALID_FE_URL) {
+      logger.error('VALID_FE_URL is required in production');
+      process.exit(1);
+    }
+    origin = process.env.VALID_FE_URL.split(',').map((s) => s.trim()).filter(Boolean);
+  } else {
+    origin = true;
+  }
+
+  logger.log(`CORS configured: ${JSON.stringify({ NODE_ENV: process.env.NODE_ENV, isProd, origin })}`);
+
   app.enableCors({
-    origin: [
-      'http://localhost:5173',
-    ],
-    methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-    allowedHeaders: ['Content-Type','Authorization'],
+    origin,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  });
+
+  // Log all requests để debug CORS
+  app.use((req, res, next) => {
+    logger.verbose(`${req.method} ${req.url} - Origin: ${req.headers.origin || 'none'}`);
+    next();
   });
 
   // Serve static files
@@ -62,11 +82,9 @@ async function bootstrap() {
   const port = Number(process.env.PORT) || 3000;
   await app.listen(port, '0.0.0.0');
 
-  console.log('[BOOT]', {
-    NODE_ENV: process.env.NODE_ENV,
-    AUTH_DISABLED: process.env.AUTH_DISABLED,
-    PORT: port,
-  });
-  console.log(`[DOCS]`, `http://localhost:${port}/docs`);
+  logger.log(`Server running on port ${port}`);
+  logger.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.log(`Auth disabled: ${process.env.AUTH_DISABLED || 'false'}`);
+  logger.log(`Documentation: http://localhost:${port}/docs`);
 }
 bootstrap();
